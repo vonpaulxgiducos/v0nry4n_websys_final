@@ -1,5 +1,6 @@
 import { Head, router, usePage } from '@inertiajs/react';
 import { useMemo, useState } from 'react';
+import { type SharedData } from '@/types';
 
 type SectionId = 'dashboard' | 'products' | 'orders';
 
@@ -146,7 +147,7 @@ const formatCurrency = (value: number) =>
     })}`;
 
 export default function SellerDashboard() {
-    const { auth } = usePage().props as any;
+    const { auth } = usePage().props as SharedData;
     const [activeSection, setActiveSection] = useState<SectionId>('dashboard');
 
     const stats = useMemo(() => {

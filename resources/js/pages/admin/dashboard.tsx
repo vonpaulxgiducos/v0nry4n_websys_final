@@ -1,5 +1,6 @@
 import { Head, router, usePage } from '@inertiajs/react';
 import { useMemo, useState } from 'react';
+import { type SharedData } from '@/types';
 
 type SectionId =
     | 'dashboard'
@@ -153,7 +154,7 @@ const ticketStyles: Record<TicketItem['status'], string> = {
 };
 
 export default function AdminDashboard() {
-    const { auth } = usePage().props as any;
+    const { auth } = usePage().props as SharedData;
     const [activeSection, setActiveSection] = useState<SectionId>('dashboard');
     const [approvals, setApprovals] = useState<ApprovalItem[]>(initialApprovals);
     const [payments, setPayments] = useState<PaymentItem[]>(initialPayments);

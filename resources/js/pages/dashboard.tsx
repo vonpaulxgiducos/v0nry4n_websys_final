@@ -1,5 +1,6 @@
 import { Head, usePage, router } from '@inertiajs/react';
 import { useMemo, useState } from 'react';
+import { type SharedData } from '@/types';
 
 type SectionId = 'dashboard' | 'browse' | 'cart' | 'orders' | 'support';
 
@@ -247,7 +248,7 @@ const formatCurrency = (value: number) =>
     })}`;
 
 export default function Dashboard() {
-    const { auth } = usePage().props as any;
+    const { auth } = usePage().props as SharedData;
     const [activeSection, setActiveSection] = useState<SectionId>('browse');
     const [search, setSearch] = useState('');
     const [category, setCategory] = useState('All');
@@ -346,7 +347,7 @@ export default function Dashboard() {
                             </div>
                             <div>
                                 <p className="text-sm font-semibold [font-family:'Space_Grotesk',sans-serif]">
-                                    Tunely Music Store
+                                    Musical Store
                                 </p>
                                 <p className="text-xs text-slate-500">
                                     Customer Dashboard
