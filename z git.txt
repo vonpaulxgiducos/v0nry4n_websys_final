@@ -23,7 +23,7 @@ Git add .
 Git commit -m “changes sa code”
 git remote add origin (http link sa imo file repository)
 git branch -m main
-git push -u origin main
+git push origin main (git push -u origin main)
 
 WHEN UPDATING THE CODE TO REPO
 git status
