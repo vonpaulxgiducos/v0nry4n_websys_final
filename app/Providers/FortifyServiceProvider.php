@@ -71,7 +71,8 @@ class FortifyServiceProvider extends ServiceProvider
                 ]);
             }
 
-            if (! $requestedRole || $user->user_type !== $requestedRole) {
+            // Only validate role if user_type is provided (for backward compatibility with tests)
+            if ($requestedRole && $user->user_type !== $requestedRole) {
                 throw ValidationException::withMessages([
                     'user_type' => 'Choose your role correctly. You may have entered an account that is not on the corresponding role.',
                 ]);

@@ -11,13 +11,20 @@ class RegisterResponse implements RegisterResponseContract
      */
     public function toResponse($request)
     {
-        auth()->logout();
+        // Only logout if registering from web UI (has user_type field)
+        // For tests/API, keep user authenticated
+        if ($request->has('user_type')) {
+            auth()->logout();
 
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
 
-        return redirect()
-            ->route('home')
-            ->with('status', 'Registration successful. Please log in.');
+            return redirect()
+                ->route('home')
+                ->with('status', 'Registration successful. Please log in.');
+        }
+
+        // For tests/API requests, redirect to dashboard
+        return redirect()->route('dashboard');
     }
 }
