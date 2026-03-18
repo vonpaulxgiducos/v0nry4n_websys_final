@@ -10,8 +10,6 @@ type RoleId = 'customer' | 'seller' | 'super_admin';
 type RoleInfo = {
     id: RoleId;
     label: string;
-    email: string;
-    password: string;
     tagline: string;
 };
 
@@ -19,30 +17,96 @@ const roles: RoleInfo[] = [
     {
         id: 'customer',
         label: 'Customer',
-        email: 'john_customer@music.test',
-        password: 'password',
         tagline: 'Shops for instruments and tracks orders.',
     },
     {
         id: 'seller',
         label: 'Seller',
-        email: 'mia_seller@music.test',
-        password: 'password',
         tagline: 'Manages listings and store inventory.',
     },
     {
         id: 'super_admin',
         label: 'Super Admin',
-        email: 'zoe_admin@music.test',
-        password: 'password',
         tagline: 'Oversees the entire marketplace.',
     },
 ];
 
+const activeRoleButtonStyles: Record<RoleId, string> = {
+    customer: 'bg-white text-slate-900 shadow-sm',
+    seller: 'bg-blue-600 text-white shadow-sm',
+    super_admin: 'bg-slate-900 text-white shadow-sm',
+};
+
+const roleSelectorStyles: Record<RoleId, string> = {
+    customer: 'bg-slate-100',
+    seller: 'bg-blue-100/80',
+    super_admin: 'bg-slate-200/80',
+};
+
+const formatPhoneNumber = (value: string) => {
+    const digits = value.replace(/\D/g, '').slice(0, 11);
+
+    if (digits.length <= 4) {
+        return digits;
+    }
+
+    if (digits.length <= 7) {
+        return `${digits.slice(0, 4)} ${digits.slice(4)}`;
+    }
+
+    return `${digits.slice(0, 4)} ${digits.slice(4, 7)} ${digits.slice(7)}`;
+};
+
+function EyeIcon({ className = 'h-4 w-4' }: { className?: string }) {
+    return (
+        <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className={className}
+            aria-hidden="true"
+        >
+            <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6z" />
+            <circle cx="12" cy="12" r="3" />
+        </svg>
+    );
+}
+
+function EyeOffIcon({ className = 'h-4 w-4' }: { className?: string }) {
+    return (
+        <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className={className}
+            aria-hidden="true"
+        >
+            <path d="M3 3l18 18" />
+            <path d="M10.8 10.8a3 3 0 0 0 4.24 4.24" />
+            <path d="M9.88 4.24A10.74 10.74 0 0 1 12 4c6.5 0 10 8 10 8a17.6 17.6 0 0 1-4.17 5.37" />
+            <path d="M6.63 6.63A17.58 17.58 0 0 0 2 12s3.5 8 10 8a10.7 10.7 0 0 0 5.37-1.46" />
+        </svg>
+    );
+}
+
 export default function Welcome() {
-    const { status } = usePage<{ status?: string }>().props;
+    const pageProps = usePage<{ status?: string; csrf_token?: string }>().props;
+    const status = pageProps.status;
+    const csrfTokenFromMeta = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '';
+    const csrfToken = pageProps.csrf_token ?? csrfTokenFromMeta ?? '';
     const [activeRole, setActiveRole] = useState<RoleId>('customer');
     const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
+    const [phone, setPhone] = useState('');
+    const [showLoginPassword, setShowLoginPassword] = useState(false);
+    const [showRegisterPassword, setShowRegisterPassword] = useState(false);
+    const [showRegisterPasswordConfirmation, setShowRegisterPasswordConfirmation] =
+        useState(false);
 
     const activeRoleInfo = useMemo(
         () => roles.find((role) => role.id === activeRole) ?? roles[0],
@@ -88,11 +152,11 @@ export default function Welcome() {
                         <div className="rounded-3xl border border-white/70 bg-white/80 p-8 shadow-[0_30px_60px_-40px_rgba(15,23,42,0.55)] backdrop-blur">
                             <div className="flex flex-col gap-6">
                                 <div>
-                                    <div className="mb-4 inline-flex rounded-full bg-slate-100 p-1 text-xs font-semibold text-slate-500">
+                                    <div className="mb-4 inline-flex rounded-full bg-slate-100 p-1 text-xs font-semibold text-slate-500 transition-colors duration-300 ease-in-out">
                                         <button
                                             type="button"
                                             onClick={() => setAuthMode('login')}
-                                            className={`rounded-full px-4 py-2 transition ${
+                                            className={`rounded-full px-4 py-2 transition-all duration-300 ease-in-out ${
                                                 authMode === 'login'
                                                     ? 'bg-white text-slate-900 shadow-sm'
                                                     : 'hover:text-slate-700'
@@ -103,9 +167,9 @@ export default function Welcome() {
                                         <button
                                             type="button"
                                             onClick={() => setAuthMode('register')}
-                                            className={`rounded-full px-4 py-2 transition ${
+                                            className={`rounded-full px-4 py-2 transition-all duration-300 ease-in-out ${
                                                 authMode === 'register'
-                                                    ? 'bg-white text-slate-900 shadow-sm'
+                                                    ? 'bg-amber-400 text-white shadow-sm'
                                                     : 'hover:text-slate-700'
                                             }`}
                                         >
@@ -117,15 +181,19 @@ export default function Welcome() {
                                             ? 'Welcome back'
                                             : 'Create your account as'}
                                     </h2>
-                                    <div className="mt-4 flex items-center gap-2 rounded-full bg-slate-100 p-1">
+                                    <div
+                                        className={`mt-4 flex items-center gap-2 rounded-full p-1 ${
+                                            roleSelectorStyles[activeRole]
+                                        } transition-colors duration-300 ease-in-out`}
+                                    >
                                         {roles.map((role) => (
                                             <button
                                                 key={role.id}
                                                 type="button"
                                                 onClick={() => setActiveRole(role.id)}
-                                                className={`flex-1 rounded-full px-3 py-2 text-xs font-semibold transition ${
+                                                className={`flex-1 rounded-full px-3 py-2 text-xs font-semibold transition-all duration-300 ease-in-out ${
                                                     activeRole === role.id
-                                                        ? 'bg-white text-slate-900 shadow-sm'
+                                                        ? activeRoleButtonStyles[role.id]
                                                         : 'text-slate-500 hover:text-slate-700'
                                                 }`}
                                             >
@@ -149,6 +217,7 @@ export default function Welcome() {
                                     <Form
                                         {...loginStore.form()}
                                         resetOnSuccess={['password']}
+                                        autoComplete="off"
                                         className="grid gap-4"
                                     >
                                         {({ processing, errors }) => (
@@ -156,6 +225,7 @@ export default function Welcome() {
                                                 key={activeRoleInfo.id}
                                                 className="grid gap-4"
                                             >
+                                                <input type="hidden" name="_token" value={csrfToken} />
                                                 <input
                                                     type="hidden"
                                                     name="user_type"
@@ -169,16 +239,16 @@ export default function Welcome() {
                                                 {!errors.user_type &&
                                                     (errors.email || errors.password) && (
                                                         <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-700">
-                                                            Invalid email or password. Please try again.
+                                                            Invalid username/email or password. Please try again.
                                                         </div>
                                                     )}
                                                 <label className="grid gap-2 text-sm font-medium text-slate-700">
-                                                    Email address
+                                                    Username or email
                                                     <input
-                                                        type="email"
+                                                        type="text"
                                                         name="email"
                                                         required
-                                                        autoComplete="email"
+                                                        autoComplete="off"
                                                         placeholder="Username or email"
                                                         className="h-11 rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm text-slate-900 shadow-inner focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200"
                                                     />
@@ -186,14 +256,46 @@ export default function Welcome() {
                                                 </label>
                                                 <label className="grid gap-2 text-sm font-medium text-slate-700">
                                                     Password
-                                                    <input
-                                                        type="password"
-                                                        name="password"
-                                                        required
-                                                        autoComplete="current-password"
-                                                        placeholder="Password"
-                                                        className="h-11 rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm text-slate-900 shadow-inner focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200"
-                                                    />
+                                                    <div className="relative">
+                                                        <input
+                                                            type={
+                                                                showLoginPassword
+                                                                    ? 'text'
+                                                                    : 'password'
+                                                            }
+                                                            name="password"
+                                                            required
+                                                            autoComplete="off"
+                                                            placeholder="Password"
+                                                            className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 pr-20 text-sm text-slate-900 shadow-inner focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            onClick={() =>
+                                                                setShowLoginPassword(
+                                                                    (prev) =>
+                                                                        !prev,
+                                                                )
+                                                            }
+                                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-600 hover:text-slate-900"
+                                                            aria-label={
+                                                                showLoginPassword
+                                                                    ? 'Hide password'
+                                                                    : 'Show password'
+                                                            }
+                                                        >
+                                                            <span className="sr-only">
+                                                                {showLoginPassword
+                                                                    ? 'Hide password'
+                                                                    : 'Show password'}
+                                                            </span>
+                                                            {showLoginPassword ? (
+                                                                <EyeOffIcon />
+                                                            ) : (
+                                                                <EyeIcon />
+                                                            )}
+                                                        </button>
+                                                    </div>
                                                 </label>
                                                 <button
                                                     type="submit"
@@ -216,6 +318,7 @@ export default function Welcome() {
                                                 key={activeRole}
                                                 className="grid gap-4"
                                             >
+                                                <input type="hidden" name="_token" value={csrfToken} />
                                                 <input
                                                     type="hidden"
                                                     name="user_type"
@@ -327,7 +430,18 @@ export default function Welcome() {
                                                         name="phone"
                                                         required={activeRole === 'seller'}
                                                         autoComplete="tel"
-                                                        placeholder="Phone number"
+                                                        placeholder="09XX XXX XXXX"
+                                                        inputMode="numeric"
+                                                        maxLength={13}
+                                                        value={phone}
+                                                        onChange={(event) =>
+                                                            setPhone(
+                                                                formatPhoneNumber(
+                                                                    event.target
+                                                                        .value,
+                                                                ),
+                                                            )
+                                                        }
                                                         className="h-11 rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm text-slate-900 shadow-inner focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200"
                                                     />
                                                     <InputError message={errors.phone} />
@@ -404,26 +518,90 @@ export default function Welcome() {
                                                 )}
                                                 <label className="grid gap-2 text-sm font-medium text-slate-700">
                                                     Password
-                                                    <input
-                                                        type="password"
-                                                        name="password"
-                                                        required
-                                                        autoComplete="new-password"
-                                                        placeholder="Create a password"
-                                                        className="h-11 rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm text-slate-900 shadow-inner focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200"
-                                                    />
+                                                    <div className="relative">
+                                                        <input
+                                                            type={
+                                                                showRegisterPassword
+                                                                    ? 'text'
+                                                                    : 'password'
+                                                            }
+                                                            name="password"
+                                                            required
+                                                            autoComplete="new-password"
+                                                            placeholder="Create a password"
+                                                            className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 pr-20 text-sm text-slate-900 shadow-inner focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            onClick={() =>
+                                                                setShowRegisterPassword(
+                                                                    (prev) =>
+                                                                        !prev,
+                                                                )
+                                                            }
+                                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-600 hover:text-slate-900"
+                                                            aria-label={
+                                                                showRegisterPassword
+                                                                    ? 'Hide password'
+                                                                    : 'Show password'
+                                                            }
+                                                        >
+                                                            <span className="sr-only">
+                                                                {showRegisterPassword
+                                                                    ? 'Hide password'
+                                                                    : 'Show password'}
+                                                            </span>
+                                                            {showRegisterPassword ? (
+                                                                <EyeOffIcon />
+                                                            ) : (
+                                                                <EyeIcon />
+                                                            )}
+                                                        </button>
+                                                    </div>
                                                     <InputError message={errors.password} />
                                                 </label>
                                                 <label className="grid gap-2 text-sm font-medium text-slate-700">
                                                     Confirm password
-                                                    <input
-                                                        type="password"
-                                                        name="password_confirmation"
-                                                        required
-                                                        autoComplete="new-password"
-                                                        placeholder="Confirm your password"
-                                                        className="h-11 rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm text-slate-900 shadow-inner focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200"
-                                                    />
+                                                    <div className="relative">
+                                                        <input
+                                                            type={
+                                                                showRegisterPasswordConfirmation
+                                                                    ? 'text'
+                                                                    : 'password'
+                                                            }
+                                                            name="password_confirmation"
+                                                            required
+                                                            autoComplete="new-password"
+                                                            placeholder="Confirm your password"
+                                                            className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 pr-20 text-sm text-slate-900 shadow-inner focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            onClick={() =>
+                                                                setShowRegisterPasswordConfirmation(
+                                                                    (prev) =>
+                                                                        !prev,
+                                                                )
+                                                            }
+                                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-600 hover:text-slate-900"
+                                                            aria-label={
+                                                                showRegisterPasswordConfirmation
+                                                                    ? 'Hide confirmation password'
+                                                                    : 'Show confirmation password'
+                                                            }
+                                                        >
+                                                            <span className="sr-only">
+                                                                {showRegisterPasswordConfirmation
+                                                                    ? 'Hide confirmation password'
+                                                                    : 'Show confirmation password'}
+                                                            </span>
+                                                            {showRegisterPasswordConfirmation ? (
+                                                                <EyeOffIcon />
+                                                            ) : (
+                                                                <EyeIcon />
+                                                            )}
+                                                        </button>
+                                                    </div>
                                                     <InputError
                                                         message={
                                                             errors.password_confirmation

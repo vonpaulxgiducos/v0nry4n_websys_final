@@ -34,7 +34,7 @@ class SupportController extends Controller
     {
         $customer = Auth::user()->customer;
         
-        $tickets = SupportTicket::where('customer_id', $customer->id)
+        $tickets = SupportTicket::where('customer_id', $customer->customer_id)
             ->with(['order', 'assignedTo', 'replies'])
             ->latest()
             ->paginate(10);
@@ -53,25 +53,24 @@ class SupportController extends Controller
             'order_id' => 'nullable|exists:orders,id',
             'subject' => 'required|string|max:200',
             'message' => 'required|string',
-            'priority' => 'required|in:low,medium,high',
+            'priority' => 'nullable|in:low,medium,high',
         ]);
 
         $customer = Auth::user()->customer;
         
         $ticketNumber = 'TKT-' . now()->format('Ymd') . '-' . str_pad(SupportTicket::count() + 1, 5, '0', STR_PAD_LEFT);
 
-        $ticket = SupportTicket::create([
+        SupportTicket::create([
             'ticket_number' => $ticketNumber,
-            'customer_id' => $customer->id,
+            'customer_id' => $customer->customer_id,
             'order_id' => $validated['order_id'] ?? null,
             'subject' => $validated['subject'],
             'message' => $validated['message'],
-            'priority' => $validated['priority'],
+            'priority' => $validated['priority'] ?? 'medium',
             'status' => 'open',
         ]);
 
-        return redirect()->route('customer.support.tickets.show', $ticket)
-            ->with('success', 'Support ticket created successfully.');
+        return back()->with('success', 'Support ticket created successfully.');
     }
 
     /**
@@ -97,6 +96,7 @@ class SupportController extends Controller
 
         $ticket->replies()->create([
             'user_id' => Auth::id(),
+            'support_ticket_id' => $ticket->id,
             'message' => $validated['message'],
         ]);
 

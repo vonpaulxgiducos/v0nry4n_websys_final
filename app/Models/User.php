@@ -68,4 +68,19 @@ class User extends Authenticatable
     {
         return $this->hasOne(SuperAdmin::class, 'user_id', 'id');
     }
+
+    public function assignedTickets()
+    {
+        return $this->hasMany(SupportTicket::class, 'assigned_to', 'id');
+    }
+
+    public function supportReplies()
+    {
+        return $this->hasMany(SupportReply::class, 'user_id', 'id');
+    }
+
+    public function verifiedPayments()
+    {
+        return $this->hasMany(Payment::class, 'verified_by', 'id');
+    }
 }

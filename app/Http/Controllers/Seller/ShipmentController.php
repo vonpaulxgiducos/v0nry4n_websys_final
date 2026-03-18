@@ -19,7 +19,7 @@ class ShipmentController extends Controller
     {
         $seller = Auth::user()->seller;
         
-        $shipments = Shipment::where('seller_id', $seller->id)
+        $shipments = Shipment::where('seller_id', $seller->seller_id)
             ->with(['order.customer.user'])
             ->latest()
             ->paginate(10);
@@ -46,13 +46,13 @@ class ShipmentController extends Controller
         
         // Ensure the order belongs to the seller
         $order = Order::findOrFail($validated['order_id']);
-        if ($order->seller_id !== $seller->id) {
+        if ($order->seller_id !== $seller->seller_id) {
             abort(403);
         }
 
         $shipment = Shipment::create([
             'order_id' => $validated['order_id'],
-            'seller_id' => $seller->id,
+            'seller_id' => $seller->seller_id,
             'tracking_number' => $validated['tracking_number'],
             'courier' => $validated['courier'],
             'shipping_status' => 'preparing',
@@ -74,7 +74,7 @@ class ShipmentController extends Controller
     public function update(Shipment $shipment, Request $request)
     {
         // Ensure the shipment belongs to the authenticated seller
-        if ($shipment->seller_id !== Auth::user()->seller->id) {
+        if ($shipment->seller_id !== Auth::user()->seller->seller_id) {
             abort(403);
         }
 

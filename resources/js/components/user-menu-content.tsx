@@ -51,8 +51,9 @@ export function UserMenuContent({ user }: UserMenuContentProps) {
                 <Link
                     className="block w-full cursor-pointer"
                     href={logout()}
+                    method="post"
                     as="button"
-                    onClick={handleLogout}
+                    onClick={cleanup}
                     data-test="logout-button"
                 >
                     <LogOut className="mr-2" />

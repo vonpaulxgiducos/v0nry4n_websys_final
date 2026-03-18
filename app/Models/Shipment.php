@@ -1,0 +1,43 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+class Shipment extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'order_id',
+        'seller_id',
+        'tracking_number',
+        'courier',
+        'shipping_status',
+        'estimated_delivery',
+        'shipped_at',
+        'delivered_at',
+        'notes',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'estimated_delivery' => 'date',
+            'shipped_at' => 'datetime',
+            'delivered_at' => 'datetime',
+        ];
+    }
+
+    public function order(): BelongsTo
+    {
+        return $this->belongsTo(Order::class);
+    }
+
+    public function seller(): BelongsTo
+    {
+        return $this->belongsTo(Seller::class, 'seller_id', 'seller_id');
+    }
+}

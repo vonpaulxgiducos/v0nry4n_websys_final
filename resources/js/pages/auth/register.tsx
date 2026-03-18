@@ -1,4 +1,4 @@
-import { Form, Head } from '@inertiajs/react';
+import { Form, Head, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 
 import InputError from '@/components/input-error';
@@ -19,8 +19,79 @@ const roles: { id: RoleId; label: string }[] = [
     { id: 'super_admin', label: 'Super Admin' },
 ];
 
+const activeRoleButtonStyles: Record<RoleId, string> = {
+    customer: 'bg-white text-slate-900 shadow-sm',
+    seller: 'bg-blue-600 text-white shadow-sm',
+    super_admin: 'bg-slate-900 text-white shadow-sm',
+};
+
+const roleSelectorStyles: Record<RoleId, string> = {
+    customer: 'bg-slate-100 text-slate-500',
+    seller: 'bg-blue-100/80 text-slate-600',
+    super_admin: 'bg-slate-200/90 text-slate-700',
+};
+
+const formatPhoneNumber = (value: string) => {
+    const digits = value.replace(/\D/g, '').slice(0, 11);
+
+    if (digits.length <= 4) {
+        return digits;
+    }
+
+    if (digits.length <= 7) {
+        return `${digits.slice(0, 4)} ${digits.slice(4)}`;
+    }
+
+    return `${digits.slice(0, 4)} ${digits.slice(4, 7)} ${digits.slice(7)}`;
+};
+
+function EyeIcon({ className = 'h-4 w-4' }: { className?: string }) {
+    return (
+        <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className={className}
+            aria-hidden="true"
+        >
+            <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6z" />
+            <circle cx="12" cy="12" r="3" />
+        </svg>
+    );
+}
+
+function EyeOffIcon({ className = 'h-4 w-4' }: { className?: string }) {
+    return (
+        <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className={className}
+            aria-hidden="true"
+        >
+            <path d="M3 3l18 18" />
+            <path d="M10.8 10.8a3 3 0 0 0 4.24 4.24" />
+            <path d="M9.88 4.24A10.74 10.74 0 0 1 12 4c6.5 0 10 8 10 8a17.6 17.6 0 0 1-4.17 5.37" />
+            <path d="M6.63 6.63A17.58 17.58 0 0 0 2 12s3.5 8 10 8a10.7 10.7 0 0 0 5.37-1.46" />
+        </svg>
+    );
+}
+
 export default function Register() {
+    const pageProps = usePage<{ csrf_token?: string }>().props;
+    const csrfTokenFromMeta = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '';
+    const csrfToken = pageProps.csrf_token ?? csrfTokenFromMeta ?? '';
     const [activeRole, setActiveRole] = useState<RoleId>('customer');
+    const [phone, setPhone] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
+    const [showPasswordConfirmation, setShowPasswordConfirmation] =
+        useState(false);
 
     return (
         <AuthLayout
@@ -36,17 +107,22 @@ export default function Register() {
             >
                 {({ processing, errors }) => (
                     <>
+                        <input type="hidden" name="_token" value={csrfToken} />
                         <input type="hidden" name="user_type" value={activeRole} />
                         <div className="grid gap-6">
-                            <div className="flex items-center gap-2 rounded-full bg-slate-100 p-1 text-xs font-semibold text-slate-500">
+                            <div
+                                className={`flex items-center gap-2 rounded-full p-1 text-xs font-semibold ${
+                                    roleSelectorStyles[activeRole]
+                                } transition-colors duration-300 ease-in-out`}
+                            >
                                 {roles.map((role) => (
                                     <button
                                         key={role.id}
                                         type="button"
                                         onClick={() => setActiveRole(role.id)}
-                                        className={`flex-1 rounded-full px-3 py-2 transition ${
+                                        className={`flex-1 rounded-full px-3 py-2 transition-all duration-300 ease-in-out ${
                                             activeRole === role.id
-                                                ? 'bg-white text-slate-900 shadow-sm'
+                                                ? activeRoleButtonStyles[role.id]
                                                 : 'hover:text-slate-700'
                                         }`}
                                     >
@@ -164,7 +240,15 @@ export default function Register() {
                                     required={activeRole === 'seller'}
                                     autoComplete="tel"
                                     name="phone"
-                                    placeholder="Phone number"
+                                    placeholder="09XX XXX XXXX"
+                                    inputMode="numeric"
+                                    maxLength={13}
+                                    value={phone}
+                                    onChange={(event) =>
+                                        setPhone(
+                                            formatPhoneNumber(event.target.value),
+                                        )
+                                    }
                                 />
                                 <InputError message={errors.phone} />
                             </div>
@@ -235,15 +319,31 @@ export default function Register() {
 
                             <div className="grid gap-2">
                                 <Label htmlFor="password">Password</Label>
-                                <Input
-                                    id="password"
-                                    type="password"
-                                    required
-                                    tabIndex={10}
-                                    autoComplete="new-password"
-                                    name="password"
-                                    placeholder="Password"
-                                />
+                                <div className="relative">
+                                    <Input
+                                        id="password"
+                                        type={showPassword ? 'text' : 'password'}
+                                        required
+                                        tabIndex={10}
+                                        autoComplete="new-password"
+                                        name="password"
+                                        placeholder="Password"
+                                        className="pr-20"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            setShowPassword((prev) => !prev)
+                                        }
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-600 hover:text-slate-900"
+                                        aria-label={showPassword ? 'Hide password' : 'Show password'}
+                                    >
+                                        <span className="sr-only">
+                                            {showPassword ? 'Hide password' : 'Show password'}
+                                        </span>
+                                        {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+                                    </button>
+                                </div>
                                 <InputError message={errors.password} />
                             </div>
 
@@ -251,15 +351,47 @@ export default function Register() {
                                 <Label htmlFor="password_confirmation">
                                     Confirm password
                                 </Label>
-                                <Input
-                                    id="password_confirmation"
-                                    type="password"
-                                    required
-                                    tabIndex={11}
-                                    autoComplete="new-password"
-                                    name="password_confirmation"
-                                    placeholder="Confirm password"
-                                />
+                                <div className="relative">
+                                    <Input
+                                        id="password_confirmation"
+                                        type={
+                                            showPasswordConfirmation
+                                                ? 'text'
+                                                : 'password'
+                                        }
+                                        required
+                                        tabIndex={11}
+                                        autoComplete="new-password"
+                                        name="password_confirmation"
+                                        placeholder="Confirm password"
+                                        className="pr-20"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            setShowPasswordConfirmation(
+                                                (prev) => !prev,
+                                            )
+                                        }
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-600 hover:text-slate-900"
+                                        aria-label={
+                                            showPasswordConfirmation
+                                                ? 'Hide confirmation password'
+                                                : 'Show confirmation password'
+                                        }
+                                    >
+                                        <span className="sr-only">
+                                            {showPasswordConfirmation
+                                                ? 'Hide confirmation password'
+                                                : 'Show confirmation password'}
+                                        </span>
+                                        {showPasswordConfirmation ? (
+                                            <EyeOffIcon />
+                                        ) : (
+                                            <EyeIcon />
+                                        )}
+                                    </button>
+                                </div>
                                 <InputError
                                     message={errors.password_confirmation}
                                 />

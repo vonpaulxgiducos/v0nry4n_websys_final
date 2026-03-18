@@ -18,7 +18,7 @@ class OrderController extends Controller
     {
         $seller = Auth::user()->seller;
         
-        $orders = Order::where('seller_id', $seller->id)
+        $orders = Order::where('seller_id', $seller->seller_id)
             ->with(['customer.user', 'orderItems', 'payment', 'shipment'])
             ->when($request->status, function ($query, $status) {
                 $query->where('order_status', $status);
@@ -37,14 +37,13 @@ class OrderController extends Controller
     public function show(Order $order): Response
     {
         // Ensure the order belongs to the authenticated seller
-        if ($order->seller_id !== Auth::user()->seller->id) {
+        if ($order->seller_id !== Auth::user()->seller->seller_id) {
             abort(403);
         }
 
         $order->load([
             'customer.user',
             'orderItems.product',
-            'orderItems.variant',
             'payment',
             'shipment',
         ]);
@@ -60,7 +59,7 @@ class OrderController extends Controller
     public function updateStatus(Order $order, Request $request)
     {
         // Ensure the order belongs to the authenticated seller
-        if ($order->seller_id !== Auth::user()->seller->id) {
+        if ($order->seller_id !== Auth::user()->seller->seller_id) {
             abort(403);
         }
 
@@ -72,6 +71,8 @@ class OrderController extends Controller
             'order_status' => $validated['order_status'],
         ]);
 
-        return back()->with('success', 'Order status updated successfully.');
+        return redirect()
+            ->route('seller.dashboard', ['section' => 'orders'])
+            ->with('success', 'Order status updated successfully.');
     }
 }

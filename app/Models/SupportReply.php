@@ -6,19 +6,20 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class SuperAdmin extends Model
+class SupportReply extends Model
 {
     use HasFactory;
 
-    protected $primaryKey = 'admin_id';
-
     protected $fillable = [
+        'support_ticket_id',
         'user_id',
-        'first_name',
-        'last_name',
-        'phone',
-        'email',
+        'message',
     ];
+
+    public function ticket(): BelongsTo
+    {
+        return $this->belongsTo(SupportTicket::class, 'support_ticket_id');
+    }
 
     public function user(): BelongsTo
     {

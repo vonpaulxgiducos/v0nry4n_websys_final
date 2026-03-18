@@ -1,4 +1,4 @@
-import { Form, Head } from '@inertiajs/react';
+import { Form, Head, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 
 import InputError from '@/components/input-error';
@@ -19,11 +19,60 @@ interface LoginProps {
     canRegister: boolean;
 }
 
+const roleSelectStyles = {
+    customer: 'border-slate-200 bg-slate-50 text-slate-900 focus:border-indigo-400 focus:ring-indigo-200',
+    seller: 'border-blue-500 bg-blue-600 text-white focus:border-blue-300 focus:ring-blue-200',
+    super_admin:
+        'border-slate-700 bg-slate-900 text-white focus:border-slate-400 focus:ring-slate-300',
+} as const;
+
+function EyeIcon({ className = 'h-4 w-4' }: { className?: string }) {
+    return (
+        <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className={className}
+            aria-hidden="true"
+        >
+            <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6z" />
+            <circle cx="12" cy="12" r="3" />
+        </svg>
+    );
+}
+
+function EyeOffIcon({ className = 'h-4 w-4' }: { className?: string }) {
+    return (
+        <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className={className}
+            aria-hidden="true"
+        >
+            <path d="M3 3l18 18" />
+            <path d="M10.8 10.8a3 3 0 0 0 4.24 4.24" />
+            <path d="M9.88 4.24A10.74 10.74 0 0 1 12 4c6.5 0 10 8 10 8a17.6 17.6 0 0 1-4.17 5.37" />
+            <path d="M6.63 6.63A17.58 17.58 0 0 0 2 12s3.5 8 10 8a10.7 10.7 0 0 0 5.37-1.46" />
+        </svg>
+    );
+}
+
 export default function Login({
     status,
     canResetPassword,
     canRegister,
 }: LoginProps) {
+    const pageProps = usePage<{ csrf_token?: string }>().props;
+    const csrfTokenFromMeta = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? null;
+    const csrfToken = pageProps.csrf_token ?? csrfTokenFromMeta ?? '';
+    const [showPassword, setShowPassword] = useState(false);
     const [activeRole, setActiveRole] = useState<'customer' | 'seller' | 'super_admin'>(
         'customer',
     );
@@ -31,17 +80,19 @@ export default function Login({
     return (
         <AuthLayout
             title="Log in to your account"
-            description="Enter your email and password below to log in"
+            description="Enter your username or email and password below to log in"
         >
             <Head title="Log in" />
 
             <Form
                 {...store.form()}
                 resetOnSuccess={['password']}
+                autoComplete="off"
                 className="flex flex-col gap-6"
             >
                 {({ processing, errors }) => (
                     <>
+                        <input type="hidden" name="_token" value={csrfToken} />
                         <div className="grid gap-6">
                             <div className="grid gap-2">
                                 <Label htmlFor="user_type">Role</Label>
@@ -57,7 +108,9 @@ export default function Login({
                                                 | 'super_admin',
                                         )
                                     }
-                                    className="h-11 rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm text-slate-900 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                                    className={`h-11 rounded-xl border px-4 text-sm focus:outline-none focus:ring-2 ${
+                                        roleSelectStyles[activeRole]
+                                    } transition-colors duration-300 ease-in-out`}
                                 >
                                     <option value="customer">Customer</option>
                                     <option value="seller">Seller</option>
@@ -66,16 +119,16 @@ export default function Login({
                                 <InputError message={errors.user_type} />
                             </div>
                             <div className="grid gap-2">
-                                <Label htmlFor="email">Email address</Label>
+                                <Label htmlFor="email">Username or email</Label>
                                 <Input
                                     id="email"
-                                    type="email"
+                                    type="text"
                                     name="email"
                                     required
                                     autoFocus
                                     tabIndex={1}
-                                    autoComplete="email"
-                                    placeholder="email@example.com"
+                                    autoComplete="off"
+                                    placeholder="Enter username or email"
                                 />
                                 <InputError message={errors.email} />
                             </div>
@@ -93,15 +146,29 @@ export default function Login({
                                         </TextLink>
                                     )}
                                 </div>
-                                <Input
-                                    id="password"
-                                    type="password"
-                                    name="password"
-                                    required
-                                    tabIndex={2}
-                                    autoComplete="current-password"
-                                    placeholder="Password"
-                                />
+                                <div className="relative">
+                                    <Input
+                                        id="password"
+                                        type={showPassword ? 'text' : 'password'}
+                                        name="password"
+                                        required
+                                        tabIndex={2}
+                                        autoComplete="off"
+                                        placeholder="Password"
+                                        className="pr-20"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword((prev) => !prev)}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-600 hover:text-slate-900"
+                                        aria-label={showPassword ? 'Hide password' : 'Show password'}
+                                    >
+                                        <span className="sr-only">
+                                            {showPassword ? 'Hide password' : 'Show password'}
+                                        </span>
+                                        {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+                                    </button>
+                                </div>
                             </div>
 
                             <div className="flex items-center space-x-3">
