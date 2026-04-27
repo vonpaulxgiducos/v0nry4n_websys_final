@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Customer;
 
 use App\Http\Controllers\Controller;
 use App\Models\CartItem;
+use App\Models\Customer;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Payment;
@@ -22,10 +23,7 @@ class CartController extends Controller
             'quantity' => ['required', 'integer', 'min:1'],
         ]);
 
-        $customer = $request->user()?->customer;
-        if (! $customer) {
-            abort(403, 'Customer profile not found.');
-        }
+        $customer = $this->resolveCustomer($request);
 
         $product = Product::query()
             ->where('id', $validated['product_id'])
@@ -57,10 +55,7 @@ class CartController extends Controller
             'quantity' => ['required', 'integer', 'min:1'],
         ]);
 
-        $customer = $request->user()?->customer;
-        if (! $customer) {
-            abort(403, 'Customer profile not found.');
-        }
+        $customer = $this->resolveCustomer($request);
 
         $item = CartItem::query()
             ->where('customer_id', $customer->customer_id)
@@ -84,10 +79,7 @@ class CartController extends Controller
 
     public function destroy(Request $request, Product $product): RedirectResponse
     {
-        $customer = $request->user()?->customer;
-        if (! $customer) {
-            abort(403, 'Customer profile not found.');
-        }
+        $customer = $this->resolveCustomer($request);
 
         CartItem::query()
             ->where('customer_id', $customer->customer_id)
@@ -109,10 +101,7 @@ class CartController extends Controller
             'payment_method' => ['required', 'in:gcash,cash_on_delivery'],
         ]);
 
-        $customer = $request->user()?->customer;
-        if (! $customer) {
-            abort(403, 'Customer profile not found.');
-        }
+        $customer = $this->resolveCustomer($request);
 
         DB::transaction(function () use ($validated, $customer): void {
             $cartItems = CartItem::query()
@@ -202,5 +191,23 @@ class CartController extends Controller
             'Ninja Van' => 130.0,
             default => 120.0,
         };
+    }
+
+    private function resolveCustomer(Request $request): Customer
+    {
+        $user = $request->user();
+        $customer = $user?->customer;
+
+        if ($user && ! $customer) {
+            $nameParts = explode(' ', $user->name ?? '', 2);
+
+            $customer = Customer::create([
+                'user_id' => $user->id,
+                'first_name' => $nameParts[0] ?? '',
+                'last_name' => $nameParts[1] ?? '',
+            ]);
+        }
+
+        return $customer;
     }
 }

@@ -26,8 +26,23 @@ export interface SharedData {
     name: string;
     auth: Auth;
     sidebarOpen: boolean;
+    profileData?: ProfileData | null;
+    userType?: UserType | null;
     [key: string]: unknown;
 }
+
+export interface ProfileData {
+    username?: string;
+    email?: string;
+    name?: string;
+    customer_name?: string;
+    owner_name?: string;
+    business_name?: string;
+    phone?: string;
+    address?: string;
+}
+
+export type UserType = 'customer' | 'seller' | 'super_admin';
 
 export interface User {
     id: number;

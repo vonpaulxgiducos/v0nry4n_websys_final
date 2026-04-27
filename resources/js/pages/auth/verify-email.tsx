@@ -1,14 +1,28 @@
 // Components
-import { Form, Head } from '@inertiajs/react';
+import { Form, Head, router, usePage } from '@inertiajs/react';
 
 import TextLink from '@/components/text-link';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import AuthLayout from '@/layouts/auth-layout';
-import { logout } from '@/routes';
 import { send } from '@/routes/verification';
+import { type SharedData } from '@/types';
 
 export default function VerifyEmail({ status }: { status?: string }) {
+    const { auth } = usePage<SharedData>().props;
+
+    const handleLogout = () => {
+        router.post(
+            '/logout',
+            { user_type: auth.user.user_type },
+            {
+                onSuccess: () => {
+                    router.visit('/login');
+                },
+            },
+        );
+    };
+
     return (
         <AuthLayout
             title="Verify email"
@@ -31,13 +45,13 @@ export default function VerifyEmail({ status }: { status?: string }) {
                             Resend verification email
                         </Button>
 
-                        <TextLink
-                            href={logout()}
-                            method="post"
-                            className="mx-auto block text-sm"
+                        <button
+                            type="button"
+                            onClick={handleLogout}
+                            className="mx-auto block text-sm text-slate-700 underline-offset-4 hover:underline"
                         >
                             Log out
-                        </TextLink>
+                        </button>
                     </>
                 )}
             </Form>

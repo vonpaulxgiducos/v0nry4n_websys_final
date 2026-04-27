@@ -35,6 +35,8 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $user = $request->user()?->loadMissing(['customer', 'seller', 'superAdmin']);
+
         return [
             ...parent::share($request),
             'name' => config('app.name'),
@@ -42,6 +44,22 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $request->user(),
             ],
+            'profileData' => $user ? [
+                'username' => $user->username,
+                'email' => $user->email,
+                'name' => $user->name,
+                'customer_name' => $user->customer
+                    ? trim($user->customer->first_name.' '.$user->customer->last_name)
+                    : $user->name,
+                'owner_name' => $user->seller?->owner_name,
+                'business_name' => $user->seller?->business_name,
+                'phone' => $user->seller?->phone
+                    ?? $user->customer?->phone
+                    ?? $user->superAdmin?->phone,
+                'address' => $user->seller?->address
+                    ?? $user->customer?->address,
+            ] : null,
+            'userType' => $user?->user_type,
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
     }

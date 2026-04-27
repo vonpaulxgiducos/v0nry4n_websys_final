@@ -1,8 +1,12 @@
 import { Head, router, usePage } from '@inertiajs/react';
 import { type FormEvent, type ReactNode, useEffect, useState } from 'react';
+import DeleteUser from '@/components/delete-user';
+import ProfileInformationForm from '@/components/profile-information-form';
+import ThemeSwitch from '@/components/theme-switch';
+import UpdatePasswordForm from '@/components/update-password-form';
 import { type SharedData } from '@/types';
 
-type SectionId = 'dashboard' | 'browse' | 'cart' | 'orders' | 'support';
+type SectionId = 'dashboard' | 'browse' | 'cart' | 'orders' | 'history' | 'support' | 'settings';
 
 type Product = {
     id: string;
@@ -19,7 +23,17 @@ type DashboardOrder = {
     id: string;
     store: string;
     amount: string;
-    status: 'delivered' | 'shipped' | 'pending' | 'cancelled';
+    paymentMethod: string;
+    status:
+        | 'delivered'
+        | 'shipped'
+        | 'confirmed'
+        | 'shipped_dispatched'
+        | 'en_route'
+        | 'in_transit'
+        | 'out_for_delivery'
+        | 'pending'
+        | 'cancelled';
 };
 
 type OrderLineItem = {
@@ -33,8 +47,18 @@ type OrderDetail = {
     orderId: number;
     id: string;
     date: string;
-    status: 'delivered' | 'shipped' | 'pending' | 'cancelled';
+    status:
+        | 'delivered'
+        | 'shipped'
+        | 'confirmed'
+        | 'shipped_dispatched'
+        | 'en_route'
+        | 'in_transit'
+        | 'out_for_delivery'
+        | 'pending'
+        | 'cancelled';
     paymentStatus: 'verified' | 'pending';
+    paymentMethod: string;
     items: OrderLineItem[];
     quantity: number;
     recipient: string;
@@ -45,6 +69,7 @@ type OrderDetail = {
     shippingFee: string;
     total: string;
     seller: string;
+    sellerPhone?: string | null;
 };
 
 type Ticket = {
@@ -69,7 +94,8 @@ type DashboardPageProps = {
     dashboardOrders?: DashboardOrder[];
     products?: Product[];
     cartItems?: CartItem[];
-    orderDetails?: OrderDetail[];
+    activeOrderDetails?: OrderDetail[];
+    historyOrderDetails?: OrderDetail[];
     tickets?: Ticket[];
     faqs?: string[];
     checkoutDefaults?: {
@@ -129,6 +155,17 @@ const navItems: { id: SectionId; label: string; icon: ReactNode }[] = [
         ),
     },
     {
+        id: 'history',
+        label: 'History',
+        icon: (
+            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 12a9 9 0 1 0 3-6.7" />
+                <path d="M3 3v4h4" />
+                <path d="M12 7v5l3 2" />
+            </svg>
+        ),
+    },
+    {
         id: 'support',
         label: 'Support',
         icon: (
@@ -149,9 +186,9 @@ const defaultStats = [
 ];
 
 const defaultDashboardOrders: DashboardOrder[] = [
-    { id: 'ORD-2024-00001', store: 'Music Hub Philippines', amount: '₱8,750', status: 'delivered' },
-    { id: 'ORD-2024-00002', store: 'Guitar World Manila', amount: '₱45,500', status: 'shipped' },
-    { id: 'ORD-2024-00003', store: 'Music Hub Philippines', amount: '₱12,800', status: 'pending' },
+    { id: 'ORD-2024-00001', store: 'Music Hub Philippines', amount: '₱8,750', paymentMethod: 'Cash on Delivery', status: 'delivered' },
+    { id: 'ORD-2024-00002', store: 'Guitar World Manila', amount: '₱45,500', paymentMethod: 'GCash', status: 'shipped' },
+    { id: 'ORD-2024-00003', store: 'Music Hub Philippines', amount: '₱12,800', paymentMethod: 'Cash on Delivery', status: 'pending' },
 ];
 
 const defaultProducts: Product[] = [
@@ -234,6 +271,7 @@ const defaultOrderDetails: OrderDetail[] = [
         date: 'February 7, 2024',
         status: 'delivered',
         paymentStatus: 'verified',
+        paymentMethod: 'Cash on Delivery',
         items: [{ name: 'Yamaha F310 Acoustic Guitar', quantity: 1, amount: '₱8,500' }],
         quantity: 1,
         recipient: 'John Doe',
@@ -251,6 +289,7 @@ const defaultOrderDetails: OrderDetail[] = [
         date: 'February 9, 2024',
         status: 'shipped',
         paymentStatus: 'verified',
+        paymentMethod: 'GCash',
         items: [{ name: 'Fender Stratocaster Electric Guitar', meta: 'Color: Sunburst', quantity: 1, amount: '₱45,000' }],
         quantity: 1,
         recipient: 'John Doe',
@@ -268,6 +307,7 @@ const defaultOrderDetails: OrderDetail[] = [
         date: 'February 14, 2024',
         status: 'pending',
         paymentStatus: 'pending',
+        paymentMethod: 'Cash on Delivery',
         items: [{ name: 'Casio CT-S300 Keyboard', quantity: 1, amount: '₱12,500' }],
         quantity: 1,
         recipient: 'John Doe',
@@ -280,6 +320,14 @@ const defaultOrderDetails: OrderDetail[] = [
         seller: 'Music Hub Philippines',
     },
 ];
+
+const defaultActiveOrderDetails = defaultOrderDetails.filter(
+    (order) => order.status !== 'delivered' && order.status !== 'cancelled',
+);
+
+const defaultHistoryOrderDetails = defaultOrderDetails.filter(
+    (order) => order.status === 'delivered' || order.status === 'cancelled',
+);
 
 const defaultTickets: Ticket[] = [
     { id: 'TICK-2024-00001', subject: 'Question about guitar maintenance', date: '2/11/2024', status: 'resolved' },
@@ -307,6 +355,11 @@ const browseCategoryOptions = [
 const dashboardStatusStyles: Record<DashboardOrder['status'], string> = {
     delivered: 'bg-emerald-100 text-emerald-700',
     shipped: 'bg-blue-100 text-blue-700',
+    confirmed: 'bg-emerald-100 text-emerald-700',
+    shipped_dispatched: 'bg-blue-100 text-blue-700',
+    en_route: 'bg-indigo-100 text-indigo-700',
+    in_transit: 'bg-sky-100 text-sky-700',
+    out_for_delivery: 'bg-violet-100 text-violet-700',
     pending: 'bg-amber-100 text-amber-700',
     cancelled: 'bg-rose-100 text-rose-700',
 };
@@ -314,12 +367,29 @@ const dashboardStatusStyles: Record<DashboardOrder['status'], string> = {
 const orderStatusStyles: Record<OrderDetail['status'], string> = {
     delivered: 'bg-emerald-100 text-emerald-700',
     shipped: 'bg-blue-100 text-blue-700',
+    confirmed: 'bg-emerald-100 text-emerald-700',
+    shipped_dispatched: 'bg-blue-100 text-blue-700',
+    en_route: 'bg-indigo-100 text-indigo-700',
+    in_transit: 'bg-sky-100 text-sky-700',
+    out_for_delivery: 'bg-violet-100 text-violet-700',
     pending: 'bg-amber-100 text-amber-700',
     cancelled: 'bg-rose-100 text-rose-700',
 };
 
+const orderStatusLabels: Record<OrderDetail['status'], string> = {
+    delivered: 'Delivered',
+    shipped: 'Shipped',
+    confirmed: 'Confirmed',
+    shipped_dispatched: 'Shipped / Dispatched',
+    en_route: 'En Route',
+    in_transit: 'In Transit',
+    out_for_delivery: 'Out for Delivery',
+    pending: 'Pending',
+    cancelled: 'Cancelled',
+};
+
 const paymentStatusStyles: Record<OrderDetail['paymentStatus'], string> = {
-    verified: 'bg-slate-100 text-slate-700',
+    verified: 'bg-emerald-100 text-emerald-700',
     pending: 'bg-amber-100 text-amber-700',
 };
 
@@ -370,7 +440,7 @@ const getInitialSectionFromUrl = (url: string): SectionId => {
     const query = url.split('?')[1] ?? '';
     const sectionParam = new URLSearchParams(query).get('section');
 
-    if (sectionParam === 'dashboard' || sectionParam === 'browse' || sectionParam === 'cart' || sectionParam === 'orders' || sectionParam === 'support') {
+    if (sectionParam === 'dashboard' || sectionParam === 'browse' || sectionParam === 'cart' || sectionParam === 'orders' || sectionParam === 'history' || sectionParam === 'support' || sectionParam === 'settings') {
         return sectionParam;
     }
 
@@ -382,7 +452,8 @@ export default function Dashboard({
     dashboardOrders = [],
     products = [],
     cartItems: initialCartItems = [],
-    orderDetails = [],
+    activeOrderDetails = defaultActiveOrderDetails,
+    historyOrderDetails = defaultHistoryOrderDetails,
     tickets = [],
     faqs = [],
     checkoutDefaults = {
@@ -394,6 +465,8 @@ export default function Dashboard({
 }: DashboardPageProps) {
     const page = usePage<SharedData>();
     const { auth } = page.props;
+    const profileData = page.props.profileData;
+    const userType = page.props.userType;
     const [activeSection, setActiveSection] = useState<SectionId>(getInitialSectionFromUrl(page.url));
     const [searchText, setSearchText] = useState('');
     const [category, setCategory] = useState('All Categories');
@@ -407,9 +480,37 @@ export default function Dashboard({
     const [checkoutAddress, setCheckoutAddress] = useState(checkoutDefaults.address);
     const [checkoutCourier, setCheckoutCourier] = useState<'J&T Express' | 'LBC' | 'Ninja Van'>(checkoutDefaults.courier);
     const [checkoutPaymentMethod, setCheckoutPaymentMethod] = useState<'gcash' | 'cash_on_delivery'>('cash_on_delivery');
+    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+
+    useEffect(() => {
+        const url = new URL(window.location.href);
+
+        if (url.searchParams.get('section') === activeSection) {
+            return;
+        }
+
+        url.searchParams.set('section', activeSection);
+        window.history.replaceState(
+            window.history.state,
+            '',
+            `${url.pathname}${url.search}${url.hash}`,
+        );
+    }, [activeSection]);
 
     const handleLogout = () => {
-        router.post('/logout');
+        router.post(
+            '/logout',
+            { user_type: String(auth.user.user_type ?? '') },
+            {
+                onSuccess: () => {
+                    router.visit('/login');
+                },
+            },
+        );
+    };
+
+    const handleOpenSettings = () => {
+        setActiveSection('settings');
     };
 
     const getInCartQuantity = (productId: string) =>
@@ -670,7 +771,7 @@ export default function Dashboard({
     };
 
     const handleCancelOrDeleteOrder = (order: OrderDetail) => {
-        const action = order.status === 'pending' ? 'cancel' : 'delete';
+        const action = order.status === 'pending' || order.status === 'confirmed' ? 'cancel' : 'delete';
         const confirmationMessage =
             action === 'cancel'
                 ? 'Cancel this order?'
@@ -680,104 +781,223 @@ export default function Dashboard({
             return;
         }
 
-        router.delete(`/customer/orders/${order.orderId}`, {
-            data: {
-                action,
-            },
-            preserveScroll: true,
-            preserveState: true,
-            replace: true,
-            onSuccess: () => {
-                showSiteNotification(
-                    action === 'cancel' ? 'Order cancelled.' : 'Order deleted.',
-                    'warning',
-                );
-            },
-        });
+        if (action === 'cancel') {
+            router.patch(
+                `/customer/orders/${order.orderId}/cancel`,
+                {},
+                {
+                    preserveScroll: true,
+                    preserveState: true,
+                    replace: true,
+                    onSuccess: () => {
+                        showSiteNotification('Order cancelled.', 'warning');
+                    },
+                },
+            );
+        } else {
+            router.delete(
+                `/customer/orders/${order.orderId}`,
+                {
+                    preserveScroll: true,
+                    preserveState: true,
+                    replace: true,
+                    onSuccess: () => {
+                        showSiteNotification('Order deleted.', 'warning');
+                    },
+                },
+            );
+        }
     };
 
-    const displayName = String(auth.user.username || auth.user.name || 'john_customer');
+    const handleMarkOrderReceived = (order: OrderDetail) => {
+        if (order.status !== 'out_for_delivery' || order.paymentStatus !== 'verified') {
+            showSiteNotification('Order can only be marked as received when payment is verified and it is out for delivery.', 'warning');
+            return;
+        }
+
+        if (!window.confirm('Mark this order as received?')) {
+            return;
+        }
+
+        router.patch(
+            `/customer/orders/${order.orderId}/received`,
+            {},
+            {
+                preserveScroll: true,
+                preserveState: false,
+                replace: true,
+                onSuccess: () => {
+                    showSiteNotification('Order marked as received.', 'success');
+                },
+            },
+        );
+    };
+
+    const accountName = String(auth.user.name || auth.user.username || 'Customer');
+    const firstName = accountName.trim().split(/\s+/)[0] || 'Customer';
 
     return (
         <>
             <Head title="Customer Dashboard" />
-            <div className="min-h-screen bg-slate-50 text-slate-900">
-                <header className="border-b border-slate-200 bg-white">
-                    <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-4">
-                        <div className="flex items-center gap-3">
-                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-500 text-white">
-                                <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <div className="min-h-screen bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-50">
+                <header className="border-b border-slate-200 bg-white/80 backdrop-blur-sm dark:border-slate-800 dark:bg-slate-950/80">
+                    <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-8 py-5">
+                        <div className="flex items-center gap-4">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-linear-to-br from-blue-500 to-cyan-500 text-white shadow-sm">
+                                <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                     <path d="M9 18V5l10-2v13" />
                                     <circle cx="6" cy="18" r="3" />
                                     <circle cx="16" cy="16" r="3" />
                                 </svg>
                             </div>
                             <div>
-                                <p className="text-sm font-semibold [font-family:'Space_Grotesk',sans-serif]">Musical Store</p>
-                                <p className="text-xs text-slate-500">Customer Dashboard</p>
+                                <p className="text-lg font-bold font-['Geist','-apple-system','BlinkMacSystemFont','Segoe UI',sans-serif] dark:text-slate-50">
+                                    Tunely
+                                </p>
+                                <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Customer Portal</p>
                             </div>
                         </div>
-                        <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-6">
+                            <ThemeSwitch />
                             <div className="text-right">
-                                <p className="text-sm font-semibold text-slate-900">{displayName}</p>
-                                <p className="text-xs text-slate-500">Customer</p>
+                                <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">{firstName}</p>
+                                <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Customer</p>
                             </div>
-                            <button
-                                onClick={handleLogout}
-                                type="button"
-                                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-red-200 hover:text-red-700"
-                            >
-                                <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                                    <polyline points="16 17 21 12 16 7" />
-                                    <line x1="21" y1="12" x2="9" y2="12" />
-                                </svg>
-                                Logout
-                            </button>
                         </div>
                     </div>
                 </header>
 
-                <div className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-6 px-6 py-8 md:grid-cols-[220px_1fr]">
-                    <aside className="rounded-2xl bg-white p-4 shadow-sm">
-                        <nav className="grid gap-2 text-sm font-semibold text-slate-600">
+                <div
+                    className={`mx-auto grid w-full max-w-7xl grid-cols-1 gap-8 px-8 py-12 transition-[grid-template-columns] duration-200 ${
+                        isSidebarCollapsed ? 'md:grid-cols-[100px_1fr]' : 'md:grid-cols-[320px_1fr]'
+                    }`}
+                >
+                    <aside className="self-start rounded-2xl border border-slate-200 bg-white p-6 text-slate-900 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:text-slate-50 md:sticky md:top-8">
+                        <div className="flex h-full flex-col gap-6">
+                            <div className={`flex items-center ${isSidebarCollapsed ? 'justify-center' : 'justify-between'}`}>
+                                {!isSidebarCollapsed && <p className="text-xs font-bold tracking-widest text-slate-400 uppercase">Menu</p>}
+                                <button
+                                    type="button"
+                                    onClick={() => setIsSidebarCollapsed((value) => !value)}
+                                    className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-800"
+                                    aria-label={isSidebarCollapsed ? 'Show sidebar labels' : 'Hide sidebar labels'}
+                                >
+                                    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        {isSidebarCollapsed ? <path d="m9 18 6-6-6-6" /> : <path d="m15 18-6-6 6-6" />}
+                                    </svg>
+                                </button>
+                            </div>
+
+                            <nav className="grid gap-1">
                             {navItems.map((item) => {
                                 const isActive = activeSection === item.id;
+                                const isOrders = item.id === 'orders';
+                                const isHistory = item.id === 'history';
+                                const isCart = item.id === 'cart';
+                                const isSupport = item.id === 'support';
 
                                 return (
                                     <button
                                         key={item.id}
                                         type="button"
                                         onClick={() => setActiveSection(item.id)}
-                                        className={`flex items-center gap-3 rounded-xl px-3 py-2 transition ${
+                                        className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
                                             isActive
-                                                ? 'bg-indigo-50 text-indigo-700'
-                                                : 'text-slate-600 hover:bg-slate-50'
+                                                ? 'bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-300'
+                                                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200'
                                         }`}
                                     >
                                         <span
-                                            className={`grid h-8 w-8 place-items-center rounded-lg ${
+                                            className={`grid h-5 w-5 place-items-center rounded ${
                                                 isActive
-                                                    ? 'bg-white text-indigo-600'
-                                                    : 'bg-slate-100 text-slate-600'
+                                                    ? 'text-blue-600 dark:text-blue-300'
+                                                    : 'text-slate-500 dark:text-slate-400'
                                             }`}
                                         >
                                             {item.icon}
                                         </span>
-                                        {item.label}
+
+                                        {!isSidebarCollapsed && (
+                                            <span className="flex min-w-0 flex-1 items-center justify-between gap-2">
+                                                <span className="truncate">{item.label}</span>
+                                                {(isOrders || isHistory || isCart || isSupport) && (
+                                                    <span className="flex items-center gap-1">
+                                                        {isOrders && activeOrderDetails.length > 0 && (
+                                                            <span className="inline-flex min-w-6 justify-center rounded-full bg-rose-500 px-1.5 py-0.5 text-xs font-bold text-white">
+                                                                {activeOrderDetails.length}
+                                                            </span>
+                                                        )}
+                                                        {isHistory && historyOrderDetails.length > 0 && (
+                                                            <span className="inline-flex min-w-6 justify-center rounded-full bg-slate-400 px-1.5 py-0.5 text-xs font-bold text-white">
+                                                                {historyOrderDetails.length}
+                                                            </span>
+                                                        )}
+                                                        {isCart && cartItems.length > 0 && (
+                                                            <span className="inline-flex min-w-6 justify-center rounded-full bg-blue-500 px-1.5 py-0.5 text-xs font-bold text-white">
+                                                                {cartItems.length}
+                                                            </span>
+                                                        )}
+                                                        {isSupport && tickets.length > 0 && (
+                                                            <span className="inline-flex min-w-6 justify-center rounded-full bg-slate-400 px-1.5 py-0.5 text-xs font-bold text-white">
+                                                                {tickets.length}
+                                                            </span>
+                                                        )}
+                                                    </span>
+                                                )}
+                                            </span>
+                                        )}
                                     </button>
                                 );
                             })}
-                        </nav>
+                            </nav>
+
+                            <div className="pt-4">
+                                <div className="mb-4 border-t border-slate-200 dark:border-slate-800" />
+                                <div className="grid gap-1">
+                                    <button
+                                        type="button"
+                                        onClick={handleOpenSettings}
+                                        className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
+                                            activeSection === 'settings'
+                                                ? 'bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-300'
+                                                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200'
+                                        } ${
+                                            isSidebarCollapsed ? 'justify-center' : ''
+                                        }`}
+                                    >
+                                        <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <circle cx="12" cy="12" r="3" />
+                                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33h.01a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.01a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.01a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                                        </svg>
+                                        {!isSidebarCollapsed && 'Settings'}
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        onClick={handleLogout}
+                                        className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-rose-600 transition hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950 ${
+                                            isSidebarCollapsed ? 'justify-center' : ''
+                                        }`}
+                                    >
+                                        <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                                            <polyline points="16 17 21 12 16 7" />
+                                            <line x1="21" y1="12" x2="9" y2="12" />
+                                        </svg>
+                                        {!isSidebarCollapsed && 'Logout'}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </aside>
 
-                    <section className="space-y-6">
+                    <section className="min-w-0 space-y-8 dark:[&_.bg-white]:bg-slate-900 dark:[&_.border-slate-200]:border-slate-700 dark:[&_.text-slate-900]:text-slate-50 dark:[&_.text-slate-600]:text-slate-300 dark:[&_.text-slate-500]:text-slate-400 dark:[&_.bg-slate-100]:bg-slate-800 dark:shadow-lg">
                         {siteNotification && (
                             <div
-                                className={`rounded-xl border px-4 py-3 text-sm font-semibold shadow-sm ${
+                                className={`rounded-lg border px-4 py-3 text-sm font-medium shadow-sm ${
                                     siteNotification.type === 'success'
-                                        ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-                                        : 'border-amber-200 bg-amber-50 text-amber-700'
+                                        ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+                                        : 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-300'
                                 }`}
                             >
                                 {siteNotification.message}
@@ -787,33 +1007,33 @@ export default function Dashboard({
                         {activeSection === 'dashboard' && (
                             <>
                                 <div>
-                                    <h1 className="text-2xl font-semibold text-slate-900">Welcome, John!</h1>
-                                    <p className="text-sm text-slate-500">Manage your orders and browse musical instruments</p>
+                                    <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-50">Welcome back, {firstName}!</h1>
+                                    <p className="mt-1 text-sm font-medium text-slate-500 dark:text-slate-400">Manage your orders and explore musical instruments</p>
                                 </div>
 
                                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                                     {stats.map((stat) => (
-                                        <article key={stat.label} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                                            <p className="text-sm text-slate-500">{stat.label}</p>
-                                            <p className="mt-2 text-2xl font-semibold text-slate-900">{stat.value}</p>
+                                        <article key={stat.label} className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                                            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{stat.label}</p>
+                                            <p className="mt-3 text-3xl font-bold text-slate-900 dark:text-slate-50">{stat.value}</p>
                                         </article>
                                     ))}
                                 </div>
 
-                                <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                                    <h2 className="text-base font-semibold text-slate-900">Recent Orders</h2>
-                                    <p className="text-sm text-slate-500">Your latest purchases</p>
-                                    <div className="mt-4 grid gap-4">
+                                <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                                    <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Recent Orders</h2>
+                                    <p className="mt-0.5 text-sm font-medium text-slate-500 dark:text-slate-400">Your latest purchases</p>
+                                    <div className="mt-6 divide-y divide-slate-200 dark:divide-slate-800">
                                         {dashboardOrders.map((order) => (
-                                            <div key={order.id} className="flex items-center justify-between rounded-2xl border border-slate-200 px-4 py-3 text-sm">
+                                            <div key={order.id} className="flex items-center justify-between py-4 first:pt-0 last:pb-0">
                                                 <div>
-                                                    <p className="font-semibold text-slate-900">{order.id}</p>
-                                                    <p className="text-xs text-slate-500">{order.store}</p>
+                                                    <p className="font-semibold text-slate-900 dark:text-slate-50">{order.id}</p>
+                                                    <p className="text-sm text-slate-500 dark:text-slate-400">{order.store}</p>
                                                 </div>
                                                 <div className="text-right">
-                                                    <p className="font-semibold text-slate-900">{order.amount}</p>
+                                                    <p className="font-semibold text-slate-900 dark:text-slate-50">{order.amount}</p>
                                                     <span className={`mt-1 inline-flex rounded-full px-3 py-1 text-xs font-semibold ${dashboardStatusStyles[order.status]}`}>
-                                                        {order.status}
+                                                        {orderStatusLabels[order.status]}
                                                     </span>
                                                 </div>
                                             </div>
@@ -826,13 +1046,13 @@ export default function Dashboard({
                         {activeSection === 'browse' && (
                             <>
                                 <div>
-                                    <h1 className="text-2xl font-semibold text-slate-900">Browse Products</h1>
-                                    <p className="text-sm text-slate-500">Discover musical instruments and accessories</p>
+                                    <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-50">Browse Products</h1>
+                                    <p className="mt-1 text-sm font-medium text-slate-500 dark:text-slate-400">Discover musical instruments and accessories</p>
                                 </div>
 
-                                <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:flex-row md:items-center">
-                                    <div className="flex flex-1 items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2">
-                                        <svg viewBox="0 0 24 24" className="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                                <div className="flex flex-col gap-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 md:flex-row md:items-center">
+                                    <div className="flex flex-1 items-center gap-3 rounded-lg border border-slate-300 bg-white px-4 py-2.5 dark:border-slate-600 dark:bg-slate-800">
+                                        <svg viewBox="0 0 24 24" className="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                             <circle cx="11" cy="11" r="8" />
                                             <line x1="21" y1="21" x2="16.65" y2="16.65" />
                                         </svg>
@@ -841,30 +1061,25 @@ export default function Dashboard({
                                             value={searchText}
                                             onChange={(event) => setSearchText(event.target.value)}
                                             placeholder="Search products..."
-                                            className="w-full bg-transparent text-sm text-slate-700 focus:outline-none"
+                                            className="w-full bg-transparent text-sm text-slate-700 placeholder-slate-400 dark:text-slate-100 dark:placeholder-slate-500 focus:outline-none"
                                         />
                                     </div>
                                 </div>
 
-                                <div className="rounded-2xl border border-slate-700 bg-slate-800 p-3 shadow-sm">
-                                    <div className="flex flex-wrap gap-2">
+                                <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                                    <div className="flex flex-wrap gap-1.5">
                                         {browseCategoryOptions.map((option) => {
                                             const isActive = category === option;
-                                            const isAllCategories = option === 'All Categories';
 
                                             return (
                                                 <button
                                                     key={option}
                                                     type="button"
                                                     onClick={() => setCategory(option)}
-                                                    className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${
-                                                        isAllCategories
-                                                            ? isActive
-                                                                ? 'border-slate-200 bg-white text-slate-900'
-                                                                : 'border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-700'
-                                                            : isActive
-                                                            ? 'border-slate-500 bg-slate-600 text-white'
-                                                            : 'border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-700'
+                                                    className={`rounded-md border px-3 py-1.5 text-xs font-medium transition ${
+                                                        isActive
+                                                            ? 'border-blue-300 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-300'
+                                                            : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'
                                                     }`}
                                                 >
                                                     {option}
@@ -874,60 +1089,56 @@ export default function Dashboard({
                                     </div>
                                 </div>
 
-                                <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+                                <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
                                     {filteredProducts.map((product) => (
-                                        <article key={product.id} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-                                            <div className="relative">
-                                                <img src={product.image} alt={product.name} className="h-48 w-full object-cover" />
-                                                <span className="absolute right-3 top-3 rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-800">
+                                        <article key={product.id} className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition hover:shadow-md dark:border-slate-800 dark:bg-slate-900">
+                                            <div className="relative overflow-hidden bg-slate-100 dark:bg-slate-800">
+                                                <img src={product.image} alt={product.name} className="h-48 w-full object-cover transition hover:scale-105" />
+                                                <span className="absolute right-4 top-4 rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-slate-800 shadow-sm dark:bg-slate-800 dark:text-slate-100">
                                                     {product.category}
                                                 </span>
                                             </div>
-                                            <div className="space-y-2 p-4">
-                                                <h2 className="text-base font-semibold text-slate-900">{product.name}</h2>
-                                                <p className="line-clamp-2 text-sm text-slate-500">{product.description}</p>
+                                            <div className="space-y-3 p-5">
+                                                <h2 className="text-base font-semibold text-slate-900 dark:text-slate-50">{product.name}</h2>
+                                                <p className="line-clamp-2 text-sm text-slate-500 dark:text-slate-400">{product.description}</p>
                                                 <div className="flex items-end justify-between pt-1">
                                                     <div>
-                                                        <p className="text-xl font-semibold text-indigo-600">{formatCurrency(product.price)}</p>
-                                                        <p className="text-xs text-slate-500">by {product.seller}</p>
+                                                        <p className="text-xl font-bold text-blue-600 dark:text-blue-300">{formatCurrency(product.price)}</p>
+                                                        <p className="text-xs text-slate-500 dark:text-slate-400">by {product.seller}</p>
                                                     </div>
-                                                    <p className="text-xs text-slate-600">Stock: {product.stock}</p>
+                                                    <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Stock: {product.stock}</p>
                                                 </div>
-                                                <div className="flex items-center justify-between">
-                                                    <div className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-2 py-1">
+                                                <div className="flex items-center justify-between gap-3 pt-2">
+                                                    <div className="inline-flex items-center gap-2 rounded-lg border border-slate-200 dark:border-slate-700">
                                                         <button
                                                             type="button"
                                                             onClick={() => handleSelectedQuantityChange(product, -1)}
-                                                            className="rounded-lg px-2 py-1 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+                                                            className="rounded-lg px-2.5 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
                                                         >
-                                                            -
+                                                            −
                                                         </button>
-                                                        <span className="min-w-6 text-center text-sm font-semibold text-slate-900">
+                                                        <span className="min-w-8 text-center text-sm font-semibold text-slate-900 dark:text-slate-50">
                                                             {selectedQuantities[product.id] ?? 1}
                                                         </span>
                                                         <button
                                                             type="button"
                                                             onClick={() => handleSelectedQuantityChange(product, 1)}
-                                                            className="rounded-lg px-2 py-1 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+                                                            className="rounded-lg px-2.5 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
                                                         >
                                                             +
                                                         </button>
                                                     </div>
-                                                    <span className="text-xs text-slate-500">
-                                                        Remaining: {getRemainingStock(product)}
+                                                    <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                                                        {getRemainingStock(product)} left
                                                     </span>
                                                 </div>
                                                 <button
                                                     type="button"
                                                     onClick={() => handleAddToCart(product)}
                                                     disabled={getRemainingStock(product) === 0}
-                                                    className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                                                    className="w-full rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-blue-700 dark:hover:bg-blue-600"
                                                 >
-                                                    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                                                        <line x1="12" y1="5" x2="12" y2="19" />
-                                                        <line x1="5" y1="12" x2="19" y2="12" />
-                                                    </svg>
-                                                    {getRemainingStock(product) === 0 ? 'Max In Cart' : 'Add to Cart'}
+                                                    {getRemainingStock(product) === 0 ? 'Out of Stock' : 'Add to Cart'}
                                                 </button>
                                             </div>
                                         </article>
@@ -935,8 +1146,8 @@ export default function Dashboard({
                                 </div>
 
                                 {filteredProducts.length === 0 && (
-                                    <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-sm text-slate-500">
-                                        No products found for your search.
+                                    <div className="rounded-lg border border-dashed border-slate-300 bg-white p-12 text-center dark:border-slate-700 dark:bg-slate-900">
+                                        <p className="text-sm text-slate-500 dark:text-slate-400">No products found for your search.</p>
                                     </div>
                                 )}
                             </>
@@ -945,31 +1156,31 @@ export default function Dashboard({
                         {activeSection === 'cart' && (
                             <>
                                 <div>
-                                    <h1 className="text-2xl font-semibold text-slate-900">Shopping Cart</h1>
-                                    <p className="text-sm text-slate-500">Review your items before checkout</p>
+                                    <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-50">Shopping Cart</h1>
+                                    <p className="mt-1 text-sm font-medium text-slate-500 dark:text-slate-400">Review your items before checkout</p>
                                 </div>
 
                                 {cartItems.length === 0 ? (
-                                    <div className="rounded-2xl border border-slate-200 bg-white px-8 py-20 shadow-sm">
+                                    <div className="rounded-lg border border-slate-200 bg-white px-8 py-20 shadow-sm dark:border-slate-800 dark:bg-slate-900">
                                         <div className="mx-auto flex max-w-md flex-col items-center text-center">
-                                            <svg viewBox="0 0 24 24" className="h-16 w-16 text-slate-400" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                                            <svg viewBox="0 0 24 24" className="h-16 w-16 text-slate-300 dark:text-slate-600" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                                                 <circle cx="9" cy="21" r="1.5" />
                                                 <circle cx="20" cy="21" r="1.5" />
                                                 <path d="M1 1h4l2.4 12.2a2 2 0 0 0 2 1.6h9.6a2 2 0 0 0 2-1.6L23 6H6" />
                                             </svg>
-                                            <p className="mt-4 text-base text-slate-500">Your cart is empty</p>
-                                            <button type="button" onClick={() => setActiveSection('browse')} className="mt-4 rounded-xl bg-slate-950 px-6 py-2 text-sm font-semibold text-white">
+                                            <p className="mt-4 text-base font-medium text-slate-500 dark:text-slate-400">Your cart is empty</p>
+                                            <button type="button" onClick={() => setActiveSection('browse')} className="mt-4 rounded-lg bg-blue-600 px-6 py-2 text-sm font-semibold text-white transition hover:bg-blue-700">
                                                 Start Shopping
                                             </button>
                                         </div>
                                     </div>
                                 ) : (
-                                    <div className="space-y-4">
+                                    <div className="space-y-6">
                                         <div className="grid gap-4">
                                             {cartItems.map((item) => (
                                                 <article
                                                     key={item.product.id}
-                                                    className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:flex-row"
+                                                    className="flex flex-col gap-4 rounded-lg border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 md:flex-row"
                                                 >
                                                     <div className="flex items-center gap-3">
                                                         <label className="inline-flex items-center">
@@ -995,7 +1206,7 @@ export default function Dashboard({
                                                                 {item.product.name}
                                                             </p>
                                                             <p className="text-sm text-slate-500">by {item.product.seller}</p>
-                                                            <p className="mt-1 text-sm font-semibold text-indigo-600">
+                                                            <p className="mt-1 text-sm font-semibold text-indigo-600 dark:text-purple-300">
                                                                 {formatCurrency(item.product.price)}
                                                             </p>
                                                         </div>
@@ -1042,17 +1253,17 @@ export default function Dashboard({
                                                         value={checkoutRecipientName}
                                                         onChange={(event) => setCheckoutRecipientName(event.target.value)}
                                                         placeholder="Recipient Name"
-                                                        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none"
+                                                        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none dark:bg-slate-800 dark:text-slate-100 dark:placeholder-slate-400"
                                                     />
                                                 </div>
                                                 <div className="grid gap-1">
-                                                    <label className="text-xs font-semibold text-slate-600">Phone Number</label>
+                                                    <label className="text-xs font-semibold text-slate-600 dark:text-slate-300">Phone Number</label>
                                                     <input
                                                         type="text"
                                                         value={checkoutPhone}
                                                         onChange={(event) => setCheckoutPhone(formatPhoneNumber(event.target.value))}
                                                         placeholder="Phone Number"
-                                                        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none"
+                                                        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none dark:bg-slate-800 dark:text-slate-100 dark:placeholder-slate-400"
                                                     />
                                                 </div>
                                                 <div className="grid gap-1">
@@ -1062,7 +1273,7 @@ export default function Dashboard({
                                                         value={checkoutAddress}
                                                         onChange={(event) => setCheckoutAddress(event.target.value)}
                                                         placeholder="Delivery Address"
-                                                        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none"
+                                                        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none dark:bg-slate-800 dark:text-slate-100 dark:placeholder-slate-400"
                                                     />
                                                 </div>
                                                 <div className="grid gap-1">
@@ -1072,7 +1283,7 @@ export default function Dashboard({
                                                         onChange={(event) =>
                                                             setCheckoutCourier(event.target.value as 'J&T Express' | 'LBC' | 'Ninja Van')
                                                         }
-                                                        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none"
+                                                        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none dark:bg-slate-800 dark:text-slate-100 dark:placeholder-slate-400"
                                                     >
                                                         {courierOptions.map((courier) => (
                                                             <option key={courier} value={courier}>
@@ -1082,13 +1293,13 @@ export default function Dashboard({
                                                     </select>
                                                 </div>
                                                 <div className="grid gap-1">
-                                                    <label className="text-xs font-semibold text-slate-600">Payment Method</label>
+                                                    <label className="text-xs font-semibold text-slate-600 dark:text-slate-300">Payment Method</label>
                                                     <select
                                                         value={checkoutPaymentMethod}
                                                         onChange={(event) =>
                                                             setCheckoutPaymentMethod(event.target.value as 'gcash' | 'cash_on_delivery')
                                                         }
-                                                        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none"
+                                                        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none dark:bg-slate-800 dark:text-slate-100 dark:placeholder-slate-400"
                                                     >
                                                         {paymentMethodOptions.map((method) => (
                                                             <option key={method} value={method}>
@@ -1109,23 +1320,23 @@ export default function Dashboard({
                                             <div className="mt-1 text-xs text-slate-500">
                                                 {selectedCartItems.length} of {cartItems.length} products selected
                                             </div>
-                                            <div className="mt-2 flex items-center justify-between text-sm text-slate-600">
+                                            <div className="mt-2 flex items-center justify-between text-sm text-slate-600 dark:text-slate-400">
                                                 <span>Estimated Shipping Fee</span>
-                                                <span>{formatCurrency(estimatedShippingFee)}</span>
+                                                <span className="text-indigo-600 dark:text-purple-300">{formatCurrency(estimatedShippingFee)}</span>
                                             </div>
-                                            <div className="mt-2 flex items-center justify-between text-lg font-semibold text-slate-900">
+                                            <div className="mt-2 flex items-center justify-between text-lg font-semibold text-slate-900 dark:text-white">
                                                 <span>Estimated Total</span>
-                                                <span className="text-indigo-600">{formatCurrency(estimatedGrandTotal)}</span>
+                                                <span className="text-indigo-600 dark:text-purple-300">{formatCurrency(estimatedGrandTotal)}</span>
                                             </div>
-                                            <div className="mt-1 flex items-center justify-between text-sm font-semibold text-slate-900">
+                                            <div className="mt-1 flex items-center justify-between text-sm font-semibold text-slate-900 dark:text-white">
                                                 <span>Items Total</span>
-                                                <span className="text-indigo-600">{formatCurrency(selectedCartTotal)}</span>
+                                                <span className="text-indigo-600 dark:text-purple-300">{formatCurrency(selectedCartTotal)}</span>
                                             </div>
                                             <div className="mt-4 grid gap-2 sm:grid-cols-2">
                                                 <button
                                                     type="button"
                                                     onClick={() => setActiveSection('browse')}
-                                                    className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700"
+                                                    className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200"
                                                 >
                                                     Continue Shopping
                                                 </button>
@@ -1133,7 +1344,7 @@ export default function Dashboard({
                                                     type="button"
                                                     onClick={handleProceedToCheckout}
                                                     disabled={selectedCartItems.length === 0}
-                                                    className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                                                    className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-semibold text-white dark:bg-indigo-600 dark:hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
                                                 >
                                                     Proceed to Checkout
                                                 </button>
@@ -1148,12 +1359,128 @@ export default function Dashboard({
                         {activeSection === 'orders' && (
                             <>
                                 <div>
-                                    <h1 className="text-2xl font-semibold text-slate-900">My Orders</h1>
+                                    <h1 className="text-2xl font-semibold text-slate-900 dark:text-white">My Orders</h1>
                                     <p className="text-sm text-slate-500">Track and manage your orders</p>
                                 </div>
 
+                                {activeOrderDetails.length === 0 ? (
+                                    <div className="rounded-2xl border border-slate-200 bg-white px-8 py-20 shadow-sm">
+                                        <div className="mx-auto flex max-w-md flex-col items-center text-center">
+                                            <svg viewBox="0 0 24 24" className="h-16 w-16 text-slate-400" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                                                <circle cx="9" cy="21" r="1.5" />
+                                                <circle cx="20" cy="21" r="1.5" />
+                                                <path d="M1 1h4l2.4 12.2a2 2 0 0 0 2 1.6h9.6a2 2 0 0 0 2-1.6L23 6H6" />
+                                            </svg>
+                                            <p className="mt-4 text-base text-slate-500">No active orders yet</p>
+                                            <button type="button" onClick={() => setActiveSection('browse')} className="mt-4 rounded-xl bg-slate-950 px-6 py-2 text-sm font-semibold text-white">
+                                                Start Shopping
+                                            </button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="grid gap-4">
+                                        {activeOrderDetails.map((order) => (
+                                            <article key={order.id} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                                                <div className="flex items-start justify-between border-b border-slate-200 pb-4">
+                                                    <div>
+                                                        <p className="text-base font-semibold text-slate-900">{order.id}</p>
+                                                        <p className="mt-1 text-sm text-slate-500">{order.date}</p>
+                                                    </div>
+                                                    <div className="grid justify-items-end gap-2">
+                                                        <span className={`rounded-full px-3 py-1 text-xs font-semibold ${orderStatusStyles[order.status]}`}>{orderStatusLabels[order.status]}</span>
+                                                        <span className={`rounded-full px-3 py-1 text-xs font-semibold ${paymentStatusStyles[order.paymentStatus]}`}>
+                                                            Payment: {order.paymentStatus}
+                                                        </span>
+                                                    </div>
+                                                </div>
+
+                                                <div className="mt-4 space-y-3 rounded-xl bg-slate-100 px-4 py-4">
+                                                    {order.items.map((item, itemIndex) => (
+                                                        <div key={`${order.id}-item-${itemIndex}`} className="flex items-start justify-between gap-4">
+                                                            <div>
+                                                                <p className="text-base font-semibold text-slate-900">{item.name}</p>
+                                                                {item.meta && <p className="text-sm text-slate-500">{item.meta}</p>}
+                                                                <p className="text-sm text-slate-600">Quantity: {item.quantity}</p>
+                                                            </div>
+                                                            <p className="text-base font-semibold text-slate-900">{item.amount}</p>
+                                                        </div>
+                                                    ))}
+                                                </div>
+
+                                                <div className="mt-4 border-t border-slate-200 pt-4">
+                                                    <p className="text-base font-semibold text-slate-900">Delivery Address</p>
+                                                    <p className="mt-2 text-sm text-slate-600">{order.recipient}</p>
+                                                    <p className="text-sm text-slate-600">{order.phone}</p>
+                                                    <p className="text-sm text-slate-600">{order.address}</p>
+                                                    <p className="mt-2 text-sm text-slate-600">Courier: <span className="font-semibold text-slate-900">{order.courier}</span></p>
+                                                    <p className="mt-1 text-sm text-slate-600">Payment Method: <span className="font-semibold text-slate-900">{order.paymentMethod}</span></p>
+                                                    {order.paymentMethod === 'GCash' && order.sellerPhone && (
+                                                        <p className="mt-1 text-sm text-slate-600">
+                                                            Store GCash Number: <span className="font-semibold text-slate-900">{order.sellerPhone}</span>
+                                                        </p>
+                                                    )}
+                                                </div>
+
+                                                <div className="mt-4 border-t border-slate-200 pt-4 text-sm text-slate-600">
+                                                    <div className="flex items-center justify-between">
+                                                        <span>Subtotal</span>
+                                                        <span>{order.subtotal}</span>
+                                                    </div>
+                                                    <div className="flex items-center justify-between">
+                                                        <span>Shipping Fee</span>
+                                                        <span>{order.shippingFee}</span>
+                                                    </div>
+                                                    <div className="flex items-center justify-between">
+                                                        <span>Total Quantity</span>
+                                                        <span>{order.quantity}</span>
+                                                    </div>
+                                                    <div className="mt-2 flex items-center justify-between text-xl font-semibold text-slate-900 dark:text-white">
+                                                        <span>Total</span>
+                                                        <span className="text-indigo-600 dark:text-violet-200">{order.total}</span>
+                                                    </div>
+                                                </div>
+
+                                                <div className="mt-4 border-t border-slate-200 pt-4 text-sm text-slate-600">
+                                                    Sold by: <span className="font-semibold text-slate-900">{order.seller}</span>
+                                                </div>
+
+                                                <div className="mt-4 flex justify-end gap-2 border-t border-slate-200 pt-4">
+                                                    {order.status === 'out_for_delivery' && order.paymentStatus === 'verified' && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleMarkOrderReceived(order)}
+                                                            className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100"
+                                                        >
+                                                            Mark as Received
+                                                        </button>
+                                                    )}
+
+                                                    {(order.status === 'pending' || order.status === 'confirmed') && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleCancelOrDeleteOrder(order)}
+                                                            className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-600 transition hover:bg-rose-100"
+                                                        >
+                                                            Cancel Order
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </article>
+                                        ))}
+                                    </div>
+                                )}
+                            </>
+                        )}
+
+                        {activeSection === 'history' && (
+                            <>
+                                <div>
+                                    <h1 className="text-2xl font-semibold text-slate-900">History</h1>
+                                    <p className="text-sm text-slate-500">Completed and past orders</p>
+                                </div>
+
                                 <div className="grid gap-4">
-                                    {orderDetails.map((order) => (
+                                    {historyOrderDetails.map((order) => (
                                         <article key={order.id} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
                                             <div className="flex items-start justify-between border-b border-slate-200 pb-4">
                                                 <div>
@@ -1161,7 +1488,7 @@ export default function Dashboard({
                                                     <p className="mt-1 text-sm text-slate-500">{order.date}</p>
                                                 </div>
                                                 <div className="grid justify-items-end gap-2">
-                                                    <span className={`rounded-full px-3 py-1 text-xs font-semibold ${orderStatusStyles[order.status]}`}>{order.status}</span>
+                                                    <span className={`rounded-full px-3 py-1 text-xs font-semibold ${orderStatusStyles[order.status]}`}>{orderStatusLabels[order.status]}</span>
                                                     <span className={`rounded-full px-3 py-1 text-xs font-semibold ${paymentStatusStyles[order.paymentStatus]}`}>
                                                         Payment: {order.paymentStatus}
                                                     </span>
@@ -1170,7 +1497,7 @@ export default function Dashboard({
 
                                             <div className="mt-4 space-y-3 rounded-xl bg-slate-100 px-4 py-4">
                                                 {order.items.map((item, itemIndex) => (
-                                                    <div key={`${order.id}-item-${itemIndex}`} className="flex items-start justify-between gap-4">
+                                                    <div key={`${order.id}-history-item-${itemIndex}`} className="flex items-start justify-between gap-4">
                                                         <div>
                                                             <p className="text-base font-semibold text-slate-900">{item.name}</p>
                                                             {item.meta && <p className="text-sm text-slate-500">{item.meta}</p>}
@@ -1187,6 +1514,12 @@ export default function Dashboard({
                                                 <p className="text-sm text-slate-600">{order.phone}</p>
                                                 <p className="text-sm text-slate-600">{order.address}</p>
                                                 <p className="mt-2 text-sm text-slate-600">Courier: <span className="font-semibold text-slate-900">{order.courier}</span></p>
+                                                <p className="mt-1 text-sm text-slate-600">Payment Method: <span className="font-semibold text-slate-900">{order.paymentMethod}</span></p>
+                                                {order.paymentMethod === 'GCash' && order.sellerPhone && (
+                                                    <p className="mt-1 text-sm text-slate-600">
+                                                        Store GCash Number: <span className="font-semibold text-slate-900">{order.sellerPhone}</span>
+                                                    </p>
+                                                )}
                                             </div>
 
                                             <div className="mt-4 border-t border-slate-200 pt-4 text-sm text-slate-600">
@@ -1202,9 +1535,9 @@ export default function Dashboard({
                                                     <span>Total Quantity</span>
                                                     <span>{order.quantity}</span>
                                                 </div>
-                                                <div className="mt-2 flex items-center justify-between text-xl font-semibold text-slate-900">
+                                                <div className="mt-2 flex items-center justify-between text-xl font-semibold text-slate-900 dark:text-white">
                                                     <span>Total</span>
-                                                    <span className="text-indigo-600">{order.total}</span>
+                                                    <span className="text-indigo-600 dark:text-violet-200">{order.total}</span>
                                                 </div>
                                             </div>
 
@@ -1212,17 +1545,23 @@ export default function Dashboard({
                                                 Sold by: <span className="font-semibold text-slate-900">{order.seller}</span>
                                             </div>
 
-                                            <div className="mt-4 flex justify-end border-t border-slate-200 pt-4">
+                                            <div className="mt-4 flex justify-end gap-2 border-t border-slate-200 pt-4">
                                                 <button
                                                     type="button"
                                                     onClick={() => handleCancelOrDeleteOrder(order)}
                                                     className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-600 transition hover:bg-rose-100"
                                                 >
-                                                    {order.status === 'pending' ? 'Cancel Order' : 'Delete Order'}
+                                                    Delete Order
                                                 </button>
                                             </div>
                                         </article>
                                     ))}
+
+                                    {historyOrderDetails.length === 0 && (
+                                        <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-sm text-slate-500">
+                                            No order history yet.
+                                        </div>
+                                    )}
                                 </div>
                             </>
                         )}
@@ -1247,7 +1586,7 @@ export default function Dashboard({
                                                     value={ticketSubject}
                                                     onChange={(event) => setTicketSubject(event.target.value)}
                                                     placeholder="Brief description of your issue"
-                                                    className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-600 outline-none"
+                                                    className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-600 outline-none dark:bg-slate-800 dark:text-slate-100 dark:placeholder-slate-400"
                                                 />
                                             </div>
                                             <div>
@@ -1257,7 +1596,7 @@ export default function Dashboard({
                                                     value={ticketMessage}
                                                     onChange={(event) => setTicketMessage(event.target.value)}
                                                     placeholder="Describe your issue in detail..."
-                                                    className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-600 outline-none"
+                                                    className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-600 outline-none dark:bg-slate-800 dark:text-slate-100 dark:placeholder-slate-400"
                                                 />
                                             </div>
                                             <button type="submit" className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white">
@@ -1308,6 +1647,25 @@ export default function Dashboard({
                                     </div>
                                 </article>
                             </>
+                        )}
+
+                        {activeSection === 'settings' && (
+                            <div className="max-w-2xl space-y-6">
+                                <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                                    <ProfileInformationForm
+                                        profileData={profileData}
+                                        userType={userType}
+                                    />
+                                </div>
+
+                                <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                                    <UpdatePasswordForm />
+                                </div>
+
+                                <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                                    <DeleteUser />
+                                </div>
+                            </div>
                         )}
                     </section>
                 </div>

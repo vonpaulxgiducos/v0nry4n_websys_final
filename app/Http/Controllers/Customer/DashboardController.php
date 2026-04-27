@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Customer;
 
 use App\Http\Controllers\Controller;
+use App\Models\Customer;
 use App\Models\Faq;
 use App\Models\Order;
 use App\Models\Product;
@@ -21,8 +22,14 @@ class DashboardController extends Controller
         $user = Auth::user();
         $customer = $user?->customer;
 
-        if (! $customer) {
-            abort(403, 'Customer profile not found.');
+        if ($user && ! $customer) {
+            $nameParts = explode(' ', $user->name ?? '', 2);
+
+            $customer = Customer::create([
+                'user_id' => $user->id,
+                'first_name' => $nameParts[0] ?? '',
+                'last_name' => $nameParts[1] ?? '',
+            ]);
         }
 
         $products = Product::query()
@@ -34,6 +41,7 @@ class DashboardController extends Controller
 
         $orders = Order::query()
             ->where('customer_id', $customer->customer_id)
+            ->whereNull('customer_hidden_at')
             ->with(['seller.user', 'orderItems', 'payment'])
             ->latest('order_date')
             ->get();
@@ -56,6 +64,39 @@ class DashboardController extends Controller
             ->filter(fn ($item) => $item->product && $item->product->approval_status === 'approved' && $item->product->is_active)
             ->values();
 
+        $mappedOrderDetails = $orders->map(function (Order $order) use ($customer) {
+            $items = $order->orderItems->map(function ($item) {
+                return [
+                    'name' => $item->item_name,
+                    'meta' => $item->variant_name,
+                    'quantity' => (int) $item->quantity,
+                    'amount' => '₱'.number_format((float) $item->line_total, 0),
+                ];
+            })->values();
+
+            $totalQuantity = (int) $order->orderItems->sum('quantity');
+
+            return [
+                'orderId' => $order->id,
+                'id' => $order->order_number,
+                'date' => optional($order->order_date)->format('F j, Y') ?? '',
+                'status' => $this->mapOrderStatus($order),
+                'paymentStatus' => $order->payment?->status === 'verified' ? 'verified' : 'pending',
+                'paymentMethod' => $this->mapPaymentMethod($order->payment?->method),
+                'items' => $items,
+                'quantity' => $totalQuantity,
+                'recipient' => $order->recipient_name ?: (trim(($customer->first_name ?? '').' '.($customer->last_name ?? '')) ?: $order->customer?->user?->name),
+                'phone' => $order->recipient_phone ?: $customer->phone,
+                'address' => $order->delivery_address ?: trim(collect([$customer->address, $customer->city, $customer->province, $customer->postal_code])->filter()->implode(', ')),
+                'courier' => $order->courier ?: 'J&T Express',
+                'subtotal' => '₱'.number_format((float) $order->subtotal, 0),
+                'shippingFee' => '₱'.number_format((float) $order->shipping_fee, 0),
+                'total' => '₱'.number_format((float) $order->total_amount, 0),
+                'seller' => $order->seller?->business_name ?? $order->seller?->user?->name ?? 'Seller',
+                'sellerPhone' => $order->seller?->phone,
+            ];
+        })->values();
+
         return Inertia::render('dashboard', [
             'stats' => [
                 ['label' => 'Total Orders', 'value' => (string) $orders->count()],
@@ -68,7 +109,8 @@ class DashboardController extends Controller
                     'id' => $order->order_number,
                     'store' => $order->seller?->business_name ?? $order->seller?->user?->name ?? 'Seller',
                     'amount' => '₱'.number_format((float) $order->total_amount, 0),
-                    'status' => $this->mapOrderStatus($order->order_status),
+                    'status' => $this->mapOrderStatus($order),
+                    'paymentMethod' => $this->mapPaymentMethod($order->payment?->method),
                 ];
             })->values(),
             'products' => $products->map(function (Product $product) {
@@ -100,36 +142,12 @@ class DashboardController extends Controller
                     'quantity' => (int) $item->quantity,
                 ];
             })->values(),
-            'orderDetails' => $orders->map(function (Order $order) use ($customer) {
-                $items = $order->orderItems->map(function ($item) {
-                    return [
-                        'name' => $item->item_name,
-                        'meta' => $item->variant_name,
-                        'quantity' => (int) $item->quantity,
-                        'amount' => '₱'.number_format((float) $item->line_total, 0),
-                    ];
-                })->values();
-
-                $totalQuantity = (int) $order->orderItems->sum('quantity');
-
-                return [
-                    'orderId' => $order->id,
-                    'id' => $order->order_number,
-                    'date' => optional($order->order_date)->format('F j, Y') ?? '',
-                    'status' => $this->mapOrderStatus($order->order_status),
-                    'paymentStatus' => $order->payment?->status === 'verified' ? 'verified' : 'pending',
-                    'items' => $items,
-                    'quantity' => $totalQuantity,
-                    'recipient' => $order->recipient_name ?: (trim(($customer->first_name ?? '').' '.($customer->last_name ?? '')) ?: $order->customer?->user?->name),
-                    'phone' => $order->recipient_phone ?: $customer->phone,
-                    'address' => $order->delivery_address ?: trim(collect([$customer->address, $customer->city, $customer->province, $customer->postal_code])->filter()->implode(', ')),
-                    'courier' => $order->courier ?: 'J&T Express',
-                    'subtotal' => '₱'.number_format((float) $order->subtotal, 0),
-                    'shippingFee' => '₱'.number_format((float) $order->shipping_fee, 0),
-                    'total' => '₱'.number_format((float) $order->total_amount, 0),
-                    'seller' => $order->seller?->business_name ?? $order->seller?->user?->name ?? 'Seller',
-                ];
-            })->values(),
+            'activeOrderDetails' => $mappedOrderDetails
+                ->filter(fn (array $order) => $order['status'] !== 'delivered' && $order['status'] !== 'cancelled')
+                ->values(),
+            'historyOrderDetails' => $mappedOrderDetails
+                ->filter(fn (array $order) => $order['status'] === 'delivered' || $order['status'] === 'cancelled')
+                ->values(),
             'checkoutDefaults' => [
                 'recipientName' => trim(($customer->first_name ?? '').' '.($customer->last_name ?? '')) ?: ($user?->name ?? ''),
                 'phone' => $customer->phone ?? '',
@@ -146,6 +164,36 @@ class DashboardController extends Controller
         ]);
     }
 
+    public function cancelOrder(Request $request, Order $order): RedirectResponse
+    {
+        $customer = $request->user()?->customer;
+
+        if (! $customer || (int) $order->customer_id !== (int) $customer->customer_id) {
+            abort(403, 'You are not allowed to modify this order.');
+        }
+
+        if (! $this->isCancellableOrder($order)) {
+            return back()->with('error', 'Only pending, payment-verified, or confirmed orders can be cancelled.');
+        }
+
+        DB::transaction(function () use ($order): void {
+            $order->loadMissing('orderItems.product');
+
+            foreach ($order->orderItems as $item) {
+                if ($item->product) {
+                    $item->product->increment('stock', (int) $item->quantity);
+                }
+            }
+
+            $order->update([
+                'order_status' => 'cancelled',
+                'shipment_status' => null,
+            ]);
+        });
+
+        return back()->with('success', 'Order cancelled successfully.');
+    }
+
     public function cancelOrDeleteOrder(Request $request, Order $order): RedirectResponse
     {
         $customer = $request->user()?->customer;
@@ -158,11 +206,11 @@ class DashboardController extends Controller
             'action' => ['nullable', 'in:cancel,delete'],
         ]);
 
-        $action = $validated['action'] ?? ($order->order_status === 'pending' ? 'cancel' : 'delete');
+        $action = $validated['action'] ?? ($this->isCancellableOrder($order) ? 'cancel' : 'delete');
 
         if ($action === 'cancel') {
-            if ($order->order_status !== 'pending') {
-                return back()->with('error', 'Only pending orders can be cancelled.');
+            if (! $this->isCancellableOrder($order)) {
+                return back()->with('error', 'Only pending, payment-verified, or confirmed orders can be cancelled.');
             }
 
             DB::transaction(function () use ($order): void {
@@ -176,28 +224,75 @@ class DashboardController extends Controller
 
                 $order->update([
                     'order_status' => 'cancelled',
+                    'shipment_status' => null,
                 ]);
             });
 
             return back()->with('success', 'Order cancelled successfully.');
         }
 
-        if ($order->order_status === 'pending') {
-            return back()->with('error', 'Pending orders must be cancelled first.');
+        if ($this->isCancellableOrder($order)) {
+            return back()->with('error', 'Pending, payment-verified, or confirmed orders must be cancelled first.');
         }
 
-        $order->delete();
+        if ($order->customer_hidden_at) {
+            return back()->with('success', 'Order removed from your list.');
+        }
 
-        return back()->with('success', 'Order deleted successfully.');
+        $order->update([
+            'customer_hidden_at' => now(),
+        ]);
+
+        return back()->with('success', 'Order removed from your list.');
     }
 
-    private function mapOrderStatus(string $status): string
+    public function markOrderReceived(Request $request, Order $order): RedirectResponse
     {
-        return match ($status) {
+        $customer = $request->user()?->customer;
+
+        if (! $customer || (int) $order->customer_id !== (int) $customer->customer_id) {
+            abort(403, 'You are not allowed to modify this order.');
+        }
+
+        if (
+            $this->mapOrderStatus($order) !== 'out_for_delivery'
+            || $order->payment?->status !== 'verified'
+        ) {
+            return back()->with('error', 'Order can only be marked as received when payment is verified and it is out for delivery.');
+        }
+
+        $order->update([
+            'order_status' => 'delivered',
+            'shipment_status' => 'delivered',
+        ]);
+
+        return back()->with('success', 'Order marked as received.');
+    }
+
+    private function mapOrderStatus(Order $order): string
+    {
+        return match ($order->order_status) {
             'delivered' => 'delivered',
-            'shipped' => 'shipped',
+            'payment_verified' => $order->shipment_status ?: 'confirmed',
+            'preparing' => $order->shipment_status ?: 'confirmed',
+            'shipped' => $order->shipment_status ?: 'shipped_dispatched',
             'cancelled' => 'cancelled',
             default => 'pending',
+        };
+    }
+
+    private function isCancellableOrder(Order $order): bool
+    {
+        return in_array($order->order_status, ['pending', 'payment_verified', 'preparing'], true);
+    }
+
+    private function mapPaymentMethod(?string $method): string
+    {
+        return match ($method) {
+            'cash_on_delivery' => 'Cash on Delivery',
+            'gcash' => 'GCash',
+            null => '—',
+            default => str($method)->replace('_', ' ')->title()->toString(),
         };
     }
 }

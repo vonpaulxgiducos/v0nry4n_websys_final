@@ -13,24 +13,6 @@ import { store } from '@/routes/register';
 
 type RoleId = 'customer' | 'seller' | 'super_admin';
 
-const roles: { id: RoleId; label: string }[] = [
-    { id: 'customer', label: 'Customer' },
-    { id: 'seller', label: 'Seller' },
-    { id: 'super_admin', label: 'Super Admin' },
-];
-
-const activeRoleButtonStyles: Record<RoleId, string> = {
-    customer: 'bg-white text-slate-900 shadow-sm',
-    seller: 'bg-blue-600 text-white shadow-sm',
-    super_admin: 'bg-slate-900 text-white shadow-sm',
-};
-
-const roleSelectorStyles: Record<RoleId, string> = {
-    customer: 'bg-slate-100 text-slate-500',
-    seller: 'bg-blue-100/80 text-slate-600',
-    super_admin: 'bg-slate-200/90 text-slate-700',
-};
-
 const formatPhoneNumber = (value: string) => {
     const digits = value.replace(/\D/g, '').slice(0, 11);
 
@@ -108,27 +90,25 @@ export default function Register() {
                 {({ processing, errors }) => (
                     <>
                         <input type="hidden" name="_token" value={csrfToken} />
-                        <input type="hidden" name="user_type" value={activeRole} />
                         <div className="grid gap-6">
-                            <div
-                                className={`flex items-center gap-2 rounded-full p-1 text-xs font-semibold ${
-                                    roleSelectorStyles[activeRole]
-                                } transition-colors duration-300 ease-in-out`}
-                            >
-                                {roles.map((role) => (
-                                    <button
-                                        key={role.id}
-                                        type="button"
-                                        onClick={() => setActiveRole(role.id)}
-                                        className={`flex-1 rounded-full px-3 py-2 transition-all duration-300 ease-in-out ${
-                                            activeRole === role.id
-                                                ? activeRoleButtonStyles[role.id]
-                                                : 'hover:text-slate-700'
-                                        }`}
-                                    >
-                                        {role.label}
-                                    </button>
-                                ))}
+                            <div className="grid gap-2">
+                                <Label htmlFor="user_type">Role</Label>
+                                <select
+                                    id="user_type"
+                                    name="user_type"
+                                    value={activeRole}
+                                    onChange={(event) =>
+                                        setActiveRole(
+                                            event.target.value as RoleId
+                                        )
+                                    }
+                                    className="h-11 rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm text-slate-900 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200 transition-colors duration-300 ease-in-out"
+                                >
+                                    <option value="customer">Customer</option>
+                                    <option value="seller">Seller</option>
+                                    <option value="super_admin">Super Admin</option>
+                                </select>
+                                <InputError message={errors.user_type} />
                             </div>
 
                             <div className="grid gap-2">

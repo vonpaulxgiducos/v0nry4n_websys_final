@@ -19,6 +19,8 @@ class Payment extends Model
         'status',
         'verified_by',
         'verified_at',
+        'admin_archived_at',
+        'admin_hidden_at',
     ];
 
     protected function casts(): array
@@ -26,6 +28,8 @@ class Payment extends Model
         return [
             'amount' => 'decimal:2',
             'verified_at' => 'datetime',
+            'admin_archived_at' => 'datetime',
+            'admin_hidden_at' => 'datetime',
         ];
     }
 

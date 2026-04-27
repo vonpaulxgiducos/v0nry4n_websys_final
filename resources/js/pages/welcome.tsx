@@ -1,7 +1,8 @@
 import { Form, Head, usePage } from '@inertiajs/react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import InputError from '@/components/input-error';
+import ThemeSwitch from '@/components/theme-switch';
 import { store as loginStore } from '@/routes/login';
 import { store as registerStore } from '@/routes/register';
 
@@ -42,6 +43,8 @@ const roleSelectorStyles: Record<RoleId, string> = {
     seller: 'bg-blue-100/80',
     super_admin: 'bg-slate-200/80',
 };
+
+const rememberedEmailKey = (role: RoleId) => `tunely.remembered_login_email.${role}`;
 
 const formatPhoneNumber = (value: string) => {
     const digits = value.replace(/\D/g, '').slice(0, 11);
@@ -96,13 +99,13 @@ function EyeOffIcon({ className = 'h-4 w-4' }: { className?: string }) {
 }
 
 export default function Welcome() {
-    const pageProps = usePage<{ status?: string; csrf_token?: string }>().props;
+    const pageProps = usePage<{ status?: string }>().props;
     const status = pageProps.status;
-    const csrfTokenFromMeta = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '';
-    const csrfToken = pageProps.csrf_token ?? csrfTokenFromMeta ?? '';
     const [activeRole, setActiveRole] = useState<RoleId>('customer');
     const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
     const [phone, setPhone] = useState('');
+    const [loginEmail, setLoginEmail] = useState('');
+    const [rememberEmail, setRememberEmail] = useState(false);
     const [showLoginPassword, setShowLoginPassword] = useState(false);
     const [showRegisterPassword, setShowRegisterPassword] = useState(false);
     const [showRegisterPasswordConfirmation, setShowRegisterPasswordConfirmation] =
@@ -113,19 +116,40 @@ export default function Welcome() {
         [activeRole],
     );
 
+    useEffect(() => {
+        const rememberedEmail = window.localStorage.getItem(rememberedEmailKey(activeRole)) ?? '';
+
+        setLoginEmail(rememberedEmail);
+        setRememberEmail(Boolean(rememberedEmail));
+    }, [activeRole]);
+
+    const handleLoginSubmitCapture = () => {
+        if (rememberEmail && loginEmail.trim()) {
+            window.localStorage.setItem(rememberedEmailKey(activeRole), loginEmail.trim());
+
+            return;
+        }
+
+        window.localStorage.removeItem(rememberedEmailKey(activeRole));
+    };
+
     return (
         <>
             <Head title="Sign In" />
-            <div className="relative min-h-screen overflow-hidden bg-[radial-gradient(1200px_circle_at_12%_10%,#eef2ff,transparent_60%),radial-gradient(900px_circle_at_88%_18%,#e7efff,transparent_55%),linear-gradient(180deg,#f7f9ff_0%,#eef2ff_55%,#e8eefb_100%)] px-6 py-10 text-slate-900">
+            <div className="relative min-h-screen overflow-hidden bg-[radial-gradient(1200px_circle_at_12%_10%,#eef2ff,transparent_60%),radial-gradient(900px_circle_at_88%_18%,#e7efff,transparent_55%),linear-gradient(180deg,#f7f9ff_0%,#eef2ff_55%,#e8eefb_100%)] px-6 py-10 text-slate-900 dark:bg-[radial-gradient(1200px_circle_at_12%_10%,#0f172a,transparent_60%),radial-gradient(900px_circle_at_88%_18%,#1e293b,transparent_55%),linear-gradient(180deg,#020617_0%,#0b1120_55%,#111827_100%)] dark:text-slate-100">
                 <div className="pointer-events-none absolute inset-0">
                     <div className="absolute -left-20 top-10 h-48 w-48 rounded-full bg-sky-200/40 blur-3xl" />
                     <div className="absolute right-0 top-32 h-56 w-56 rounded-full bg-indigo-200/50 blur-3xl" />
                     <div className="absolute bottom-10 left-1/3 h-64 w-64 rounded-full bg-blue-200/40 blur-3xl" />
                 </div>
 
-                <div className="relative mx-auto flex min-h-[calc(100vh-5rem)] w-full max-w-5xl flex-col items-center justify-center gap-10">
-                    <header className="text-center">
-                        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 via-indigo-600 to-blue-700 text-white shadow-[0_20px_40px_-20px_rgba(30,64,175,0.8)]">
+                <div className="relative mx-auto flex min-h-[calc(100vh-5rem)] w-full max-w-6xl items-center gap-10">
+                    <div className="fixed right-6 top-6 z-30">
+                        <ThemeSwitch />
+                    </div>
+
+                    <section className="fixed left-[12%] top-1/2 z-20 flex -translate-y-1/2 flex-col items-center text-center lg:items-start lg:text-left">
+                        <div className="absolute -top-12 right-0 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 via-indigo-600 to-blue-700 text-white shadow-[0_20px_40px_-20px_rgba(30,64,175,0.8)]">
                             <svg
                                 viewBox="0 0 24 24"
                                 className="h-7 w-7"
@@ -140,16 +164,22 @@ export default function Welcome() {
                                 <circle cx="16" cy="16" r="3" />
                             </svg>
                         </div>
-                        <h1 className="mt-4 text-3xl font-semibold tracking-tight text-slate-950 [font-family:'Space_Grotesk',sans-serif]">
+                        <h1 className="mt-4 text-3xl font-semibold tracking-tight text-slate-950 dark:text-slate-100 [font-family:'Space_Grotesk',sans-serif]">
                             Tunely Music Store
                         </h1>
-                        <p className="mt-1 text-sm uppercase tracking-[0.2em] text-slate-500">
+                        <p className="mt-1 text-sm uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300">
                             E-Commerce System
                         </p>
-                    </header>
+                        <p className="mt-8 text-xs text-slate-500 dark:text-slate-300">
+                            © 2026 Tunely Music Store and Services.
+                            <span className="block text-[11px] text-slate-400 dark:text-slate-400">
+                                All Rights Reserved.
+                            </span>
+                        </p>
+                    </section>
 
-                    <main className="w-full max-w-2xl">
-                        <div className="rounded-3xl border border-white/70 bg-white/80 p-8 shadow-[0_30px_60px_-40px_rgba(15,23,42,0.55)] backdrop-blur">
+                    <main className="w-full max-w-2xl lg:ml-auto lg:justify-self-end">
+                        <div className="rounded-3xl border border-white/70 bg-white/80 p-8 shadow-[0_30px_60px_-40px_rgba(15,23,42,0.55)] backdrop-blur dark:border-slate-700 dark:bg-slate-900/80 dark:[&_.text-slate-900]:text-slate-100 dark:[&_.text-slate-700]:text-slate-200 dark:[&_.text-slate-500]:text-slate-300 dark:[&_.text-slate-400]:text-slate-400 dark:[&_.border-slate-200]:border-slate-700 dark:[&_.bg-slate-50]:bg-slate-800 dark:[&_.bg-slate-100]:bg-slate-800 dark:[&_.bg-slate-200\/80]:bg-slate-800 dark:[&_.bg-blue-100\/80]:bg-slate-800 dark:[&_.bg-white]:bg-slate-900">
                             <div className="flex flex-col gap-6">
                                 <div>
                                     <div className="mb-4 inline-flex rounded-full bg-slate-100 p-1 text-xs font-semibold text-slate-500 transition-colors duration-300 ease-in-out">
@@ -217,6 +247,7 @@ export default function Welcome() {
                                     <Form
                                         {...loginStore.form()}
                                         resetOnSuccess={['password']}
+                                        onSubmitCapture={handleLoginSubmitCapture}
                                         autoComplete="off"
                                         className="grid gap-4"
                                     >
@@ -225,7 +256,6 @@ export default function Welcome() {
                                                 key={activeRoleInfo.id}
                                                 className="grid gap-4"
                                             >
-                                                <input type="hidden" name="_token" value={csrfToken} />
                                                 <input
                                                     type="hidden"
                                                     name="user_type"
@@ -247,6 +277,12 @@ export default function Welcome() {
                                                     <input
                                                         type="text"
                                                         name="email"
+                                                        value={loginEmail}
+                                                        onChange={(event) =>
+                                                            setLoginEmail(
+                                                                event.target.value,
+                                                            )
+                                                        }
                                                         required
                                                         autoComplete="off"
                                                         placeholder="Username or email"
@@ -297,6 +333,22 @@ export default function Welcome() {
                                                         </button>
                                                     </div>
                                                 </label>
+                                                <label className="inline-flex items-center gap-2 text-sm text-slate-700">
+                                                    <input
+                                                        type="checkbox"
+                                                        name="remember"
+                                                        value="1"
+                                                        checked={rememberEmail}
+                                                        onChange={(event) =>
+                                                            setRememberEmail(
+                                                                event.target
+                                                                    .checked,
+                                                            )
+                                                        }
+                                                        className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                                                    />
+                                                    Remember me
+                                                </label>
                                                 <button
                                                     type="submit"
                                                     disabled={processing}
@@ -318,7 +370,6 @@ export default function Welcome() {
                                                 key={activeRole}
                                                 className="grid gap-4"
                                             >
-                                                <input type="hidden" name="_token" value={csrfToken} />
                                                 <input
                                                     type="hidden"
                                                     name="user_type"
@@ -635,13 +686,6 @@ export default function Welcome() {
 
                             </div>
                         </div>
-
-                        <p className="mt-6 text-center text-xs text-slate-500">
-                            © 2026 Tunely Music Store and Services.
-                            <span className="block text-[11px] text-slate-400">
-                                All Rights Reserved. 
-                            </span>
-                        </p>
                     </main>
                 </div>
             </div>

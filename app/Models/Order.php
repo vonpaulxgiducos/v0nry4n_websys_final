@@ -18,6 +18,10 @@ class Order extends Model
         'seller_id',
         'order_date',
         'order_status',
+        'shipment_status',
+        'customer_hidden_at',
+        'seller_archived_at',
+        'seller_hidden_at',
         'subtotal',
         'shipping_fee',
         'total_amount',
@@ -31,6 +35,9 @@ class Order extends Model
     {
         return [
             'order_date' => 'datetime',
+            'customer_hidden_at' => 'datetime',
+            'seller_archived_at' => 'datetime',
+            'seller_hidden_at' => 'datetime',
             'subtotal' => 'decimal:2',
             'shipping_fee' => 'decimal:2',
             'total_amount' => 'decimal:2',

@@ -1,10 +1,9 @@
-import { Form, Head, usePage } from '@inertiajs/react';
-import { useState } from 'react';
+import { Form, Head } from '@inertiajs/react';
+import { useEffect, useState } from 'react';
 
 import InputError from '@/components/input-error';
 import TextLink from '@/components/text-link';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
@@ -18,6 +17,9 @@ interface LoginProps {
     canResetPassword: boolean;
     canRegister: boolean;
 }
+
+const rememberedEmailKey = (role: 'customer' | 'seller' | 'super_admin') =>
+    `tunely.remembered_login_email.${role}`;
 
 const roleSelectStyles = {
     customer: 'border-slate-200 bg-slate-50 text-slate-900 focus:border-indigo-400 focus:ring-indigo-200',
@@ -69,13 +71,31 @@ export default function Login({
     canResetPassword,
     canRegister,
 }: LoginProps) {
-    const pageProps = usePage<{ csrf_token?: string }>().props;
-    const csrfTokenFromMeta = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? null;
-    const csrfToken = pageProps.csrf_token ?? csrfTokenFromMeta ?? '';
     const [showPassword, setShowPassword] = useState(false);
+    const [email, setEmail] = useState('');
+    const [rememberEmail, setRememberEmail] = useState(false);
     const [activeRole, setActiveRole] = useState<'customer' | 'seller' | 'super_admin'>(
         'customer',
     );
+
+    useEffect(() => {
+        const rememberedEmail = window.localStorage.getItem(
+            rememberedEmailKey(activeRole),
+        ) ?? '';
+
+        setEmail(rememberedEmail);
+        setRememberEmail(Boolean(rememberedEmail));
+    }, [activeRole]);
+
+    const handleSubmitCapture = () => {
+        if (rememberEmail && email.trim()) {
+            window.localStorage.setItem(rememberedEmailKey(activeRole), email.trim());
+
+            return;
+        }
+
+        window.localStorage.removeItem(rememberedEmailKey(activeRole));
+    };
 
     return (
         <AuthLayout
@@ -87,12 +107,12 @@ export default function Login({
             <Form
                 {...store.form()}
                 resetOnSuccess={['password']}
+                onSubmitCapture={handleSubmitCapture}
                 autoComplete="off"
                 className="flex flex-col gap-6"
             >
                 {({ processing, errors }) => (
                     <>
-                        <input type="hidden" name="_token" value={csrfToken} />
                         <div className="grid gap-6">
                             <div className="grid gap-2">
                                 <Label htmlFor="user_type">Role</Label>
@@ -124,6 +144,8 @@ export default function Login({
                                     id="email"
                                     type="text"
                                     name="email"
+                                    value={email}
+                                    onChange={(event) => setEmail(event.target.value)}
                                     required
                                     autoFocus
                                     tabIndex={1}
@@ -172,10 +194,17 @@ export default function Login({
                             </div>
 
                             <div className="flex items-center space-x-3">
-                                <Checkbox
+                                <input
                                     id="remember"
                                     name="remember"
+                                    type="checkbox"
+                                    value="1"
+                                    checked={rememberEmail}
+                                    onChange={(event) =>
+                                        setRememberEmail(event.target.checked)
+                                    }
                                     tabIndex={3}
+                                    className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
                                 />
                                 <Label htmlFor="remember">Remember me</Label>
                             </div>

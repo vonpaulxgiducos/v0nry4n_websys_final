@@ -1,12 +1,18 @@
 import { Head, router, usePage } from '@inertiajs/react';
-import { type ReactNode, useMemo, useState } from 'react';
+import { type ReactNode, useEffect, useMemo, useState } from 'react';
+import DeleteUser from '@/components/delete-user';
+import ProfileInformationForm from '@/components/profile-information-form';
+import ThemeSwitch from '@/components/theme-switch';
+import UpdatePasswordForm from '@/components/update-password-form';
 import { type SharedData } from '@/types';
 
 type SectionId =
     | 'dashboard'
     | 'approvals'
     | 'payments'
-    | 'tickets';
+    | 'revenue_history'
+    | 'tickets'
+    | 'settings';
 
 type ApprovalItem = {
     id: string;
@@ -26,12 +32,14 @@ type PaymentItem = {
     method: string;
     amount: number;
     customer: string;
+    customerPhone?: string;
     dateLabel: string;
     reference: string;
     notes: string;
-    status: 'pending' | 'verified';
+    status: 'pending' | 'verified' | 'rejected';
     verifiedOn?: string;
     verificationNotes?: string;
+    isArchived?: boolean;
 };
 
 type TicketItem = {
@@ -52,6 +60,8 @@ type AdminDashboardPageProps = {
     initialApprovedProducts?: ApprovalItem[];
     initialPendingPayments?: PaymentItem[];
     initialVerifiedPayments?: PaymentItem[];
+    initialRejectedPayments?: PaymentItem[];
+    initialRevenueHistory?: PaymentItem[];
     initialTickets?: TicketItem[];
     stats?: { label: string; value: string }[];
     platformRevenue?: number;
@@ -100,7 +110,7 @@ const navItems: { id: SectionId; label: string; icon: ReactNode }[] = [
     },
     {
         id: 'payments',
-        label: 'Payment Verification',
+        label: 'Total Verification',
         icon: (
             <svg
                 viewBox="0 0 24 24"
@@ -113,6 +123,24 @@ const navItems: { id: SectionId; label: string; icon: ReactNode }[] = [
             >
                 <rect x="3" y="5" width="18" height="14" rx="2" />
                 <path d="M3 10h18" />
+            </svg>
+        ),
+    },
+    {
+        id: 'revenue_history',
+        label: 'Revenue History',
+        icon: (
+            <svg
+                viewBox="0 0 24 24"
+                className="h-4 w-4"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+            >
+                <path d="M3 3v18h18" />
+                <path d="M7 13l4-4 3 3 5-6" />
             </svg>
         ),
     },
@@ -318,18 +346,43 @@ const methodBadgeStyles: Record<string, string> = {
     'bank transfer': 'bg-slate-950 text-white',
 };
 
+const getInitialSectionFromUrl = (url: string): SectionId => {
+    const query = url.split('?')[1] ?? '';
+    const sectionParam = new URLSearchParams(query).get('section');
+
+    if (
+        sectionParam === 'dashboard'
+        || sectionParam === 'approvals'
+        || sectionParam === 'payments'
+        || sectionParam === 'revenue_history'
+        || sectionParam === 'tickets'
+        || sectionParam === 'settings'
+    ) {
+        return sectionParam;
+    }
+
+    return 'dashboard';
+};
+
 export default function AdminDashboard({
     initialApprovals = [],
     initialApprovedProducts = [],
     initialPendingPayments = [],
     initialVerifiedPayments = [],
+    initialRejectedPayments = [],
+    initialRevenueHistory = [],
     initialTickets = [],
     stats: statsFromServer,
     platformRevenue = 0,
     activeProducts = 0,
 }: AdminDashboardPageProps) {
-    const { auth } = usePage<SharedData>().props;
-    const [activeSection, setActiveSection] = useState<SectionId>('dashboard');
+    const page = usePage<SharedData>();
+    const { auth } = page.props;
+    const profileData = page.props.profileData;
+    const userType = page.props.userType;
+    const accountName = String(auth.user.name || auth.user.username || 'Admin');
+    const firstName = accountName.trim().split(/\s+/)[0] || 'Admin';
+    const [activeSection, setActiveSection] = useState<SectionId>(getInitialSectionFromUrl(page.url));
     const [approvals, setApprovals] = useState<ApprovalItem[]>(initialApprovals);
     const [approvedProducts, setApprovedProducts] =
         useState<ApprovalItem[]>(initialApprovedProducts);
@@ -339,8 +392,27 @@ export default function AdminDashboard({
         useState<PaymentItem[]>(initialPendingPayments);
     const [verifiedPayments, setVerifiedPayments] =
         useState<PaymentItem[]>(initialVerifiedPayments);
-    const [rejectedPaymentsCount, setRejectedPaymentsCount] = useState(0);
+    const [rejectedPayments, setRejectedPayments] =
+        useState<PaymentItem[]>(initialRejectedPayments);
+    const [revenueHistory, setRevenueHistory] =
+        useState<PaymentItem[]>(initialRevenueHistory);
     const [tickets, setTickets] = useState<TicketItem[]>(initialTickets);
+    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+
+    useEffect(() => {
+        const url = new URL(window.location.href);
+
+        if (url.searchParams.get('section') === activeSection) {
+            return;
+        }
+
+        url.searchParams.set('section', activeSection);
+        window.history.replaceState(
+            window.history.state,
+            '',
+            `${url.pathname}${url.search}${url.hash}`,
+        );
+    }, [activeSection]);
 
     const stats = useMemo(() => {
         const totalOrdersFromServer = statsFromServer?.find((item) => item.label === 'Total Orders')?.value;
@@ -362,7 +434,19 @@ export default function AdminDashboard({
     }, [approvals.length, pendingPayments.length, tickets, verifiedPayments.length, statsFromServer]);
 
     const handleLogout = () => {
-        router.post('/logout');
+        router.post(
+            '/logout',
+            { user_type: String(auth.user.user_type ?? '') },
+            {
+                onSuccess: () => {
+                    router.visit('/login');
+                },
+            },
+        );
+    };
+
+    const handleOpenSettings = () => {
+        setActiveSection('settings');
     };
 
     const handleApprove = (id: string) => {
@@ -454,11 +538,53 @@ export default function AdminDashboard({
             {
                 preserveScroll: true,
                 preserveState: false,
-                onSuccess: () => {
-                    setRejectedPaymentsCount((prev) => prev + 1);
-                },
             },
         );
+    };
+
+    const handleArchiveRevenuePayment = (paymentId?: number) => {
+        if (!paymentId) {
+            return;
+        }
+
+        router.patch(
+            `/admin/payments/${paymentId}/archive`,
+            {},
+            {
+                preserveScroll: true,
+                preserveState: false,
+            },
+        );
+    };
+
+    const handleUnarchiveRevenuePayment = (paymentId?: number) => {
+        if (!paymentId) {
+            return;
+        }
+
+        router.patch(
+            `/admin/payments/${paymentId}/unarchive`,
+            {},
+            {
+                preserveScroll: true,
+                preserveState: false,
+            },
+        );
+    };
+
+    const handleDeleteRevenuePayment = (paymentId?: number) => {
+        if (!paymentId) {
+            return;
+        }
+
+        if (!window.confirm('Delete this revenue record from admin view?')) {
+            return;
+        }
+
+        router.delete(`/admin/payments/${paymentId}`, {
+            preserveScroll: true,
+            preserveState: false,
+        });
     };
 
     const handleResolveTicket = (ticketId?: number) => {
@@ -476,20 +602,35 @@ export default function AdminDashboard({
         );
     };
 
+    const handleDeleteTicket = (ticketId?: number) => {
+        if (!ticketId) {
+            return;
+        }
+
+        if (!window.confirm('Delete this support ticket from admin view?')) {
+            return;
+        }
+
+        router.delete(`/admin/tickets/${ticketId}`, {
+            preserveScroll: true,
+            preserveState: false,
+        });
+    };
+
     return (
         <>
             <Head title="Admin Dashboard" />
-            <div className="min-h-screen bg-slate-50 text-slate-900">
-                <header className="border-b border-slate-200 bg-white">
-                    <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-4">
-                        <div className="flex items-center gap-3">
-                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-500 text-white">
+            <div className="min-h-screen bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-50">
+                <header className="border-b border-slate-200 bg-white/80 backdrop-blur-sm dark:border-slate-800 dark:bg-slate-950/80">
+                    <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-8 py-5">
+                        <div className="flex items-center gap-4">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-linear-to-br from-purple-500 to-pink-500 text-white shadow-sm">
                                 <svg
                                     viewBox="0 0 24 24"
                                     className="h-5 w-5"
                                     fill="none"
                                     stroke="currentColor"
-                                    strokeWidth="1.8"
+                                    strokeWidth="2"
                                     strokeLinecap="round"
                                     strokeLinejoin="round"
                                 >
@@ -499,82 +640,153 @@ export default function AdminDashboard({
                                 </svg>
                             </div>
                             <div>
-                                <p className="text-sm font-semibold [font-family:'Space_Grotesk',sans-serif]">
-                                    Musical Store
+                                <p className="text-lg font-bold font-['Geist','-apple-system','BlinkMacSystemFont','Segoe UI',sans-serif] dark:text-slate-50">
+                                    Tunely
                                 </p>
-                                <p className="text-xs text-slate-500">Admin Dashboard</p>
+                                <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Admin Control Center</p>
                             </div>
                         </div>
-                        <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-6">
+                            <ThemeSwitch />
                             <div className="text-right">
-                                <p className="text-sm font-semibold text-slate-900">
-                                    {auth.user.name}
+                                <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">
+                                    {firstName}
                                 </p>
-                                <p className="text-xs text-slate-500">Super Admin</p>
+                                <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Super Admin</p>
                             </div>
-                            <button
-                                onClick={handleLogout}
-                                type="button"
-                                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-red-200 hover:text-red-700"
-                            >
-                                <svg
-                                    viewBox="0 0 24 24"
-                                    className="h-4 w-4"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    strokeWidth="1.8"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                >
-                                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                                    <polyline points="16 17 21 12 16 7" />
-                                    <line x1="21" y1="12" x2="9" y2="12" />
-                                </svg>
-                                Logout
-                            </button>
                         </div>
                     </div>
                 </header>
 
-                <div className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-6 px-6 py-8 md:grid-cols-[220px_1fr]">
-                    <aside className="rounded-2xl bg-white p-4 shadow-sm">
-                        <nav className="grid gap-2 text-sm font-semibold text-slate-600">
+                <div
+                    className={`mx-auto grid w-full max-w-7xl grid-cols-1 gap-8 px-8 py-12 transition-[grid-template-columns] duration-200 ${
+                        isSidebarCollapsed ? 'md:grid-cols-[100px_1fr]' : 'md:grid-cols-[320px_1fr]'
+                    }`}
+                >
+                    <aside className="self-start rounded-2xl border border-slate-200 bg-white p-6 text-slate-900 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:text-slate-50 md:sticky md:top-8">
+                        <div className="flex h-full flex-col gap-6">
+                            <div className={`flex items-center ${isSidebarCollapsed ? 'justify-center' : 'justify-between'}`}>
+                                {!isSidebarCollapsed && <p className="text-xs font-bold tracking-widest text-slate-400 uppercase">Menu</p>}
+                                <button
+                                    type="button"
+                                    onClick={() => setIsSidebarCollapsed((value) => !value)}
+                                    className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-800"
+                                    aria-label={isSidebarCollapsed ? 'Show sidebar labels' : 'Hide sidebar labels'}
+                                >
+                                    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        {isSidebarCollapsed ? <path d="m9 18 6-6-6-6" /> : <path d="m15 18-6-6 6-6" />}
+                                    </svg>
+                                </button>
+                            </div>
+
+                            <nav className="grid gap-1">
                             {navItems.map((item) => {
                                 const isActive = activeSection === item.id;
+                                const isApprovals = item.id === 'approvals';
+                                const isPayments = item.id === 'payments';
+                                const isRevenueHistory = item.id === 'revenue_history';
+                                const isTickets = item.id === 'tickets';
 
                                 return (
                                     <button
                                         key={item.id}
                                         type="button"
                                         onClick={() => setActiveSection(item.id)}
-                                        className={`flex items-center gap-3 rounded-xl px-3 py-2 transition ${
+                                        className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
                                             isActive
-                                                ? 'bg-indigo-50 text-indigo-700'
-                                                : 'text-slate-600 hover:bg-slate-50'
+                                                ? 'bg-purple-50 text-purple-600 dark:bg-purple-950 dark:text-purple-300'
+                                                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200'
                                         }`}
                                     >
                                         <span
-                                            className={`grid h-8 w-8 place-items-center rounded-lg ${
+                                            className={`grid h-5 w-5 place-items-center rounded ${
                                                 isActive
-                                                    ? 'bg-white text-indigo-600'
-                                                    : 'bg-slate-100 text-slate-600'
+                                                    ? 'text-purple-600 dark:text-purple-300'
+                                                    : 'text-slate-500 dark:text-slate-400'
                                             }`}
                                         >
                                             {item.icon}
                                         </span>
-                                        {item.label}
+                                        {!isSidebarCollapsed && (
+                                            <span className="flex min-w-0 flex-1 items-center justify-between gap-2">
+                                                <span className="truncate">{item.label}</span>
+                                                {(isApprovals || isPayments || isRevenueHistory || isTickets) && (
+                                                    <span className="flex items-center gap-1">
+                                                        {isApprovals && approvals.length > 0 && (
+                                                            <span className="inline-flex min-w-6 justify-center rounded-full bg-slate-500 px-2 py-0.5 text-xs font-bold text-white">
+                                                                {approvals.length}
+                                                            </span>
+                                                        )}
+                                                        {isPayments && pendingPayments.length > 0 && (
+                                                            <span className="inline-flex min-w-6 justify-center rounded-full bg-rose-500 px-2 py-0.5 text-xs font-bold text-white">
+                                                                {pendingPayments.length}
+                                                            </span>
+                                                        )}
+                                                        {isRevenueHistory && revenueHistory.length > 0 && (
+                                                            <span className="inline-flex min-w-6 justify-center rounded-full bg-slate-500 px-2 py-0.5 text-xs font-bold text-white">
+                                                                {revenueHistory.length}
+                                                            </span>
+                                                        )}
+                                                        {isTickets && tickets.length > 0 && (
+                                                            <span className="inline-flex min-w-6 justify-center rounded-full bg-slate-500 px-2 py-0.5 text-xs font-bold text-white">
+                                                                {tickets.length}
+                                                            </span>
+                                                        )}
+                                                    </span>
+                                                )}
+                                            </span>
+                                        )}
                                     </button>
                                 );
                             })}
-                        </nav>
+                            </nav>
+
+                            <div className="pt-6">
+                                <div className="mb-4 border-t border-slate-200 dark:border-slate-800" />
+                                <div className="grid gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={handleOpenSettings}
+                                        className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold transition ${
+                                            activeSection === 'settings'
+                                                ? 'bg-slate-200 text-slate-900 dark:bg-slate-700 dark:text-slate-100'
+                                                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-slate-100'
+                                        } ${
+                                            isSidebarCollapsed ? 'justify-center' : ''
+                                        }`}
+                                    >
+                                        <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                                            <circle cx="12" cy="12" r="3" />
+                                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33h.01a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.01a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.01a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                                        </svg>
+                                        {!isSidebarCollapsed && 'Settings'}
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        onClick={handleLogout}
+                                        className={`flex items-center gap-3 rounded-xl bg-rose-100 px-3 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-200 hover:text-rose-900 dark:bg-slate-800 dark:text-rose-400 dark:hover:bg-slate-700 dark:hover:text-rose-300 ${
+                                            isSidebarCollapsed ? 'justify-center' : ''
+                                        }`}
+                                    >
+                                        <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                                            <polyline points="16 17 21 12 16 7" />
+                                            <line x1="21" y1="12" x2="9" y2="12" />
+                                        </svg>
+                                        {!isSidebarCollapsed && 'Logout'}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </aside>
 
-                    <section className="space-y-6">
+                    <section className="min-w-0 space-y-6 dark:[&_.bg-white]:bg-slate-900 dark:[&_.border-slate-200]:border-slate-700 dark:[&_.text-slate-900]:text-slate-100 dark:[&_.text-slate-600]:text-slate-300 dark:[&_.text-slate-500]:text-slate-400 dark:[&_.bg-slate-100]:bg-slate-800 dark:shadow-lg">
                         {activeSection === 'dashboard' && (
                             <>
                                 <div>
                                     <h1 className="text-2xl font-semibold text-slate-900">
-                                        Admin Dashboard
+                                        Welcome, {firstName}!
                                     </h1>
                                     <p className="text-sm text-slate-500">
                                         Manage products, payments, and support
@@ -651,7 +863,7 @@ export default function AdminDashboard({
                                         <p className="mt-1 text-sm text-slate-500">
                                             Approved and available products
                                         </p>
-                                        <p className="mt-4 text-2xl font-semibold text-indigo-600">
+                                        <p className="mt-4 text-2xl font-semibold text-indigo-600 dark:text-violet-200">
                                             {activeProducts}
                                         </p>
                                     </div>
@@ -731,7 +943,7 @@ export default function AdminDashboard({
 
                         {activeSection === 'approvals' && (
                             <>
-                                <div className="max-w-[860px] space-y-6">
+                                <div className="max-w-215 space-y-6">
                                     <div>
                                         <h1 className="text-2xl font-semibold text-slate-900">
                                             Product Approvals
@@ -797,7 +1009,7 @@ export default function AdminDashboard({
                                                     </div>
                                                     <div className="flex items-center justify-between">
                                                         <span className="text-slate-500">Price</span>
-                                                        <span className="font-semibold text-indigo-600">
+                                                        <span className="font-semibold text-indigo-600 dark:text-violet-200">
                                                             {formatCurrency(approvals[0].price)}
                                                         </span>
                                                     </div>
@@ -873,7 +1085,7 @@ export default function AdminDashboard({
                                                         </div>
                                                         <div className="flex items-center justify-between">
                                                             <span className="text-slate-500">Price</span>
-                                                            <span className="font-semibold text-indigo-600">
+                                                            <span className="font-semibold text-indigo-600 dark:text-violet-200">
                                                                 {formatCurrency(item.price)}
                                                             </span>
                                                         </div>
@@ -894,10 +1106,10 @@ export default function AdminDashboard({
 
                         {activeSection === 'payments' && (
                             <>
-                                <div className="max-w-[860px] space-y-6">
+                                <div className="max-w-215 space-y-6">
                                     <div>
                                         <h1 className="text-2xl font-semibold text-slate-900">
-                                            Payment Verification
+                                            Total Verification
                                         </h1>
                                         <p className="text-sm text-slate-500">
                                             Review and verify customer payments
@@ -920,7 +1132,7 @@ export default function AdminDashboard({
                                         <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
                                             <p className="text-sm text-slate-500">Rejected</p>
                                             <p className="mt-2 text-2xl font-semibold text-red-600">
-                                                {rejectedPaymentsCount}
+                                                {rejectedPayments.length}
                                             </p>
                                         </div>
                                     </div>
@@ -960,8 +1172,14 @@ export default function AdminDashboard({
                                                     </span>
                                                 </div>
                                                 <div className="flex items-center justify-between">
+                                                    <span className="text-slate-500">Customer Phone</span>
+                                                    <span className="font-semibold text-slate-900">
+                                                        {pendingPayments[0].customerPhone ?? '—'}
+                                                    </span>
+                                                </div>
+                                                <div className="flex items-center justify-between">
                                                     <span className="text-slate-500">Amount</span>
-                                                        <span className="text-xl font-semibold text-indigo-600">
+                                                        <span className="text-xl font-semibold text-indigo-600 dark:text-violet-200">
                                                         {formatCurrency(pendingPayments[0].amount)}
                                                     </span>
                                                 </div>
@@ -1046,8 +1264,14 @@ export default function AdminDashboard({
                                                         </span>
                                                     </div>
                                                     <div className="flex items-center justify-between">
+                                                        <span className="text-slate-500">Customer Phone</span>
+                                                        <span className="font-semibold text-slate-900">
+                                                            {payment.customerPhone ?? '—'}
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex items-center justify-between">
                                                         <span className="text-slate-500">Amount</span>
-                                                        <span className="text-xl font-semibold text-indigo-600">
+                                                        <span className="text-xl font-semibold text-indigo-600 dark:text-violet-200">
                                                             {formatCurrency(payment.amount)}
                                                         </span>
                                                     </div>
@@ -1085,13 +1309,241 @@ export default function AdminDashboard({
                                             </div>
                                         ))}
                                     </div>
+
+                                    <div>
+                                        <h2 className="text-xl font-semibold text-slate-900">
+                                            Recently Rejected
+                                        </h2>
+                                    </div>
+
+                                    <div className="grid gap-4 md:grid-cols-2">
+                                        {rejectedPayments.map((payment) => (
+                                            <div
+                                                key={`rejected-${payment.id}-${payment.paymentId}`}
+                                                className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+                                            >
+                                                <div className="flex items-center justify-between">
+                                                    <h3 className="text-base font-semibold text-slate-900">
+                                                        {payment.id}
+                                                    </h3>
+                                                    <span
+                                                        className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                                                            methodBadgeStyles[
+                                                                payment.method.toLowerCase()
+                                                            ] ?? 'bg-slate-950 text-white'
+                                                        }`}
+                                                    >
+                                                        {payment.method.toUpperCase()}
+                                                    </span>
+                                                </div>
+
+                                                <p className="mt-2 text-sm text-slate-500">
+                                                    {payment.dateLabel}
+                                                </p>
+
+                                                <div className="mt-5 grid gap-2 text-sm">
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="text-slate-500">Customer</span>
+                                                        <span className="font-semibold text-slate-900">
+                                                            {payment.customer}
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="text-slate-500">Customer Phone</span>
+                                                        <span className="font-semibold text-slate-900">
+                                                            {payment.customerPhone ?? '—'}
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="text-slate-500">Amount</span>
+                                                        <span className="text-xl font-semibold text-indigo-600 dark:text-violet-200">
+                                                            {formatCurrency(payment.amount)}
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="text-slate-500">Reference</span>
+                                                        <span className="font-semibold text-slate-900">
+                                                            {payment.reference}
+                                                        </span>
+                                                    </div>
+                                                </div>
+
+                                                <div className="mt-3 rounded-xl bg-rose-50 p-3 text-sm font-medium text-rose-700">
+                                                    Rejected
+                                                </div>
+
+                                                {payment.verificationNotes && (
+                                                    <div className="mt-3 rounded-xl bg-slate-100 p-3">
+                                                        <p className="text-xs text-slate-500">
+                                                            Rejection Notes
+                                                        </p>
+                                                        <p className="text-sm font-medium text-slate-900">
+                                                            {payment.verificationNotes}
+                                                        </p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </>
+                        )}
+
+                        {activeSection === 'revenue_history' && (
+                            <>
+                                <div className="max-w-215 space-y-6">
+                                    <div>
+                                        <h1 className="text-2xl font-semibold text-slate-900">
+                                            Revenue History
+                                        </h1>
+                                        <p className="text-sm text-slate-500">
+                                            Track all verified revenue records
+                                        </p>
+                                    </div>
+
+                                    <div className="grid gap-4 md:grid-cols-3">
+                                        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                                            <p className="text-sm text-slate-500">Total Records</p>
+                                            <p className="mt-2 text-2xl font-semibold text-slate-900">
+                                                {revenueHistory.length}
+                                            </p>
+                                        </div>
+                                        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                                            <p className="text-sm text-slate-500">Archived</p>
+                                            <p className="mt-2 text-2xl font-semibold text-indigo-600 dark:text-violet-200">
+                                                {revenueHistory.filter((item) => item.isArchived).length}
+                                            </p>
+                                        </div>
+                                        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                                            <p className="text-sm text-slate-500">Visible</p>
+                                            <p className="mt-2 text-2xl font-semibold text-emerald-600">
+                                                {revenueHistory.filter((item) => !item.isArchived).length}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid gap-4 md:grid-cols-2">
+                                        {revenueHistory
+                                            .filter((payment) => !payment.isArchived)
+                                            .map((payment) => (
+                                                <div
+                                                    key={`revenue-${payment.id}-${payment.paymentId}`}
+                                                    className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800"
+                                                >
+                                                    <div className="flex items-center justify-between">
+                                                        <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">
+                                                            {payment.id}
+                                                        </h3>
+                                                        <span
+                                                            className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                                                                methodBadgeStyles[
+                                                                    payment.method.toLowerCase()
+                                                                ] ?? 'bg-slate-950 text-white'
+                                                            }`}
+                                                        >
+                                                            {payment.method.toUpperCase()}
+                                                        </span>
+                                                    </div>
+                                                    <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">{payment.dateLabel}</p>
+                                                    <div className="mt-4 grid gap-1 text-sm">
+                                                        <p>Customer: <span className="font-semibold text-slate-900 dark:text-slate-100">{payment.customer}</span></p>
+                                                        <p>Amount: <span className="font-semibold text-indigo-600 dark:text-violet-200">{formatCurrency(payment.amount)}</span></p>
+                                                        <p>Reference: <span className="font-semibold text-slate-900 dark:text-slate-100">{payment.reference}</span></p>
+                                                        <p>Status: <span className="font-semibold text-emerald-700 dark:text-emerald-400">Verified</span></p>
+                                                        <p>Archive: <span className="font-semibold text-slate-900 dark:text-slate-100">Visible</span></p>
+                                                    </div>
+
+                                                    <div className="mt-4 flex flex-wrap justify-end gap-2 border-t border-slate-200 pt-4 dark:border-slate-700">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleArchiveRevenuePayment(payment.paymentId)}
+                                                            className="rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700 transition hover:bg-indigo-100 dark:border-indigo-900 dark:bg-indigo-950 dark:text-indigo-400 dark:hover:bg-indigo-900"
+                                                        >
+                                                            Archive
+                                                        </button>
+
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleDeleteRevenuePayment(payment.paymentId)}
+                                                            className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-100 dark:border-rose-900 dark:bg-rose-950 dark:text-rose-400 dark:hover:bg-rose-900"
+                                                        >
+                                                            Delete
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ))}
+
+                                        {revenueHistory.some((item) => item.isArchived) && (
+                                            <div className="col-span-full flex items-center gap-4">
+                                                <div className="flex-1 border-t border-slate-300 dark:border-slate-600"></div>
+                                                <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">Archived Records</p>
+                                                <div className="flex-1 border-t border-slate-300 dark:border-slate-600"></div>
+                                            </div>
+                                        )}
+
+                                        {revenueHistory
+                                            .filter((payment) => payment.isArchived)
+                                            .map((payment) => (
+                                                <div
+                                                    key={`revenue-${payment.id}-${payment.paymentId}`}
+                                                    className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm opacity-75 dark:border-slate-700 dark:bg-slate-800"
+                                                >
+                                                    <div className="flex items-center justify-between">
+                                                        <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">
+                                                            {payment.id}
+                                                        </h3>
+                                                        <span
+                                                            className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                                                                methodBadgeStyles[
+                                                                    payment.method.toLowerCase()
+                                                                ] ?? 'bg-slate-950 text-white'
+                                                            }`}
+                                                        >
+                                                            {payment.method.toUpperCase()}
+                                                        </span>
+                                                    </div>
+                                                    <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">{payment.dateLabel}</p>
+                                                    <div className="mt-4 grid gap-1 text-sm">
+                                                        <p>Customer: <span className="font-semibold text-slate-900 dark:text-slate-100">{payment.customer}</span></p>
+                                                        <p>Amount: <span className="font-semibold text-indigo-600 dark:text-violet-200">{formatCurrency(payment.amount)}</span></p>
+                                                        <p>Reference: <span className="font-semibold text-slate-900 dark:text-slate-100">{payment.reference}</span></p>
+                                                        <p>Status: <span className="font-semibold text-emerald-700 dark:text-emerald-400">Verified</span></p>
+                                                        <p>Archive: <span className="font-semibold text-slate-900 dark:text-slate-100">Archived</span></p>
+                                                    </div>
+
+                                                    <div className="mt-4 flex flex-wrap justify-end gap-2 border-t border-slate-200 pt-4 dark:border-slate-700">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleUnarchiveRevenuePayment(payment.paymentId)}
+                                                            className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600"
+                                                        >
+                                                            Unarchive
+                                                        </button>
+
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleDeleteRevenuePayment(payment.paymentId)}
+                                                            className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-100 dark:border-rose-900 dark:bg-rose-950 dark:text-rose-400 dark:hover:bg-rose-900"
+                                                        >
+                                                            Delete
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                    </div>
+
+                                    {revenueHistory.length === 0 && (
+                                        <div className="max-w-md rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-sm text-slate-500">
+                                            No revenue history records yet.
+                                        </div>
+                                    )}
                                 </div>
                             </>
                         )}
 
                         {activeSection === 'tickets' && (
                             <>
-                                <div className="max-w-[860px] space-y-6">
+                                <div className="max-w-215 space-y-6">
                                     <div>
                                         <h1 className="text-2xl font-semibold text-slate-900">
                                             Support Tickets
@@ -1135,7 +1587,7 @@ export default function AdminDashboard({
                                     </div>
 
                                     <div>
-                                        <h2 className="text-xl font-semibold text-slate-900">
+                                        <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">
                                             Open Tickets
                                         </h2>
                                     </div>
@@ -1145,10 +1597,10 @@ export default function AdminDashboard({
                                         .map((ticket) => (
                                             <div
                                                 key={ticket.id}
-                                                className="max-w-md rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+                                                className="max-w-md rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800"
                                             >
                                                 <div className="flex items-center gap-2">
-                                                    <h3 className="text-base font-semibold text-slate-900">
+                                                    <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">
                                                         {ticket.id}
                                                     </h3>
                                                     <span
@@ -1162,17 +1614,17 @@ export default function AdminDashboard({
                                                         {ticket.status}
                                                     </span>
                                                 </div>
-                                                <p className="mt-2 text-sm text-slate-500">
+                                                <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
                                                     {ticket.subject}
                                                 </p>
-                                                <p className="mt-4 text-sm text-slate-700">
+                                                <p className="mt-4 text-sm text-slate-700 dark:text-slate-300">
                                                     {ticket.message}
                                                 </p>
-                                                <div className="mt-4 flex items-center justify-between text-sm text-slate-500">
+                                                <div className="mt-4 flex items-center justify-between text-sm text-slate-500 dark:text-slate-400">
                                                     <span>by {ticket.customer}</span>
                                                     <span>{ticket.date}</span>
                                                 </div>
-                                                <div className="mt-3 border-t border-slate-100 pt-3">
+                                                <div className="mt-3 border-t border-slate-100 pt-3 dark:border-slate-700">
                                                     <button
                                                         type="button"
                                                         onClick={() => handleResolveTicket(ticket.ticketId)}
@@ -1185,55 +1637,74 @@ export default function AdminDashboard({
                                         ))}
 
                                     <div>
-                                        <h2 className="text-xl font-semibold text-slate-900">
+                                        <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">
                                             Recently Resolved
                                         </h2>
                                     </div>
 
-                                    {tickets
-                                        .filter((ticket) => ticket.status === 'resolved')
-                                        .map((ticket) => (
-                                            <div
-                                                key={ticket.id}
-                                                className="max-w-md rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
-                                            >
-                                                <div className="flex items-center gap-2">
-                                                    <h3 className="text-base font-semibold text-slate-900">
-                                                        {ticket.id}
-                                                    </h3>
-                                                    <span
-                                                        className={`rounded-full px-3 py-1 text-xs font-semibold ${priorityStyles[ticket.priority]}`}
-                                                    >
-                                                        {ticket.priority}
-                                                    </span>
-                                                    <span
-                                                        className={`rounded-full px-3 py-1 text-xs font-semibold ${ticketStyles[ticket.status]}`}
-                                                    >
-                                                        {ticket.status}
-                                                    </span>
-                                                </div>
-                                                <p className="mt-2 text-sm text-slate-500">
-                                                    {ticket.subject}
-                                                </p>
-                                                <p className="mt-4 text-sm text-slate-700">
-                                                    {ticket.preview}
-                                                </p>
-                                                <div className="mt-4 flex items-center justify-between text-sm text-slate-500">
-                                                    <span>by {ticket.customer}</span>
-                                                    <span>{ticket.date}</span>
-                                                </div>
-                                                {ticket.relatedOrder && (
-                                                    <div className="mt-3 border-t border-slate-100 pt-3 text-sm text-slate-500">
-                                                        Related Order:{' '}
-                                                        <span className="font-semibold text-slate-900">
-                                                            {ticket.relatedOrder}
+                                    <div className="grid gap-4 md:grid-cols-2">
+                                        {tickets
+                                            .filter((ticket) => ticket.status === 'resolved')
+                                            .map((ticket) => (
+                                                <div
+                                                    key={ticket.id}
+                                                    className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800"
+                                                >
+                                                    <div className="flex items-center justify-between">
+                                                        <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">
+                                                            {ticket.id}
+                                                        </h3>
+                                                        <span
+                                                            className={`rounded-full px-3 py-1 text-xs font-semibold ${priorityStyles[ticket.priority]}`}
+                                                        >
+                                                            {ticket.priority}
                                                         </span>
                                                     </div>
-                                                )}
-                                            </div>
-                                        ))}
+                                                    <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">{ticket.date}</p>
+                                                    <div className="mt-4 grid gap-1 text-sm">
+                                                        <p>Subject: <span className="font-semibold text-slate-900 dark:text-slate-100">{ticket.subject}</span></p>
+                                                        <p>Customer: <span className="font-semibold text-slate-900 dark:text-slate-100">{ticket.customer}</span></p>
+                                                        <p>Status: <span className="font-semibold text-emerald-700 dark:text-emerald-400">Resolved</span></p>
+                                                        {ticket.relatedOrder && (
+                                                            <p>Related Order: <span className="font-semibold text-slate-900 dark:text-slate-100">{ticket.relatedOrder}</span></p>
+                                                        )}
+                                                    </div>
+                                                    <p className="mt-4 text-sm text-slate-600 dark:text-slate-300">
+                                                        {ticket.preview}
+                                                    </p>
+                                                    <div className="mt-4 flex flex-wrap justify-end gap-2 border-t border-slate-200 pt-4 dark:border-slate-700">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleDeleteTicket(ticket.ticketId)}
+                                                            className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-100 dark:border-rose-900 dark:bg-rose-950 dark:text-rose-400 dark:hover:bg-rose-900"
+                                                        >
+                                                            Delete
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                    </div>
                                 </div>
                             </>
+                        )}
+
+                        {activeSection === 'settings' && (
+                            <div className="max-w-2xl space-y-6">
+                                <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                                    <ProfileInformationForm
+                                        profileData={profileData}
+                                        userType={userType}
+                                    />
+                                </div>
+
+                                <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                                    <UpdatePasswordForm />
+                                </div>
+
+                                <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                                    <DeleteUser />
+                                </div>
+                            </div>
                         )}
                     </section>
                 </div>

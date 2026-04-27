@@ -45,13 +45,15 @@ class DashboardController extends Controller
             'verified_at' => now(),
         ]);
 
-        if ($payment->order) {
+        if ($payment->order && $payment->order->order_status === 'pending') {
             $payment->order->update([
                 'order_status' => 'payment_verified',
             ]);
         }
 
-        return back()->with('success', 'Payment verified successfully.');
+        return redirect()
+            ->route('admin.dashboard', ['section' => 'payments'])
+            ->with('success', 'Payment verified successfully.');
     }
 
     public function rejectPayment(Payment $payment): RedirectResponse
@@ -64,7 +66,46 @@ class DashboardController extends Controller
             'verified_at' => now(),
         ]);
 
-        return back()->with('success', 'Payment rejected successfully.');
+        return redirect()
+            ->route('admin.dashboard', ['section' => 'payments'])
+            ->with('success', 'Payment rejected successfully.');
+    }
+
+    public function archivePayment(Payment $payment): RedirectResponse
+    {
+        abort_unless(Auth::user()?->user_type === 'super_admin', 403);
+
+        if (! $payment->admin_archived_at) {
+            $payment->update([
+                'admin_archived_at' => now(),
+            ]);
+        }
+
+        return back()->with('success', 'Payment archived successfully.');
+    }
+
+    public function unarchivePayment(Payment $payment): RedirectResponse
+    {
+        abort_unless(Auth::user()?->user_type === 'super_admin', 403);
+
+        $payment->update([
+            'admin_archived_at' => null,
+        ]);
+
+        return back()->with('success', 'Payment unarchived successfully.');
+    }
+
+    public function destroyPayment(Payment $payment): RedirectResponse
+    {
+        abort_unless(Auth::user()?->user_type === 'super_admin', 403);
+
+        if (! $payment->admin_hidden_at) {
+            $payment->update([
+                'admin_hidden_at' => now(),
+            ]);
+        }
+
+        return back()->with('success', 'Payment removed from admin list.');
     }
 
     public function resolveTicket(SupportTicket $ticket): RedirectResponse
@@ -77,6 +118,15 @@ class DashboardController extends Controller
         ]);
 
         return back()->with('success', 'Support ticket resolved successfully.');
+    }
+
+    public function destroyTicket(SupportTicket $ticket): RedirectResponse
+    {
+        abort_unless(Auth::user()?->user_type === 'super_admin', 403);
+
+        $ticket->delete();
+
+        return back()->with('success', 'Support ticket deleted successfully.');
     }
 
     public function index(): Response
@@ -97,13 +147,35 @@ class DashboardController extends Controller
 
         $pendingPayments = Payment::query()
             ->with('order.customer.user')
+            ->whereNull('admin_hidden_at')
             ->where('status', 'pending')
+            ->whereHas('order', function ($query) {
+                $query->where('order_status', '!=', 'cancelled');
+            })
             ->latest()
             ->get();
 
         $verifiedPayments = Payment::query()
             ->with('order.customer.user')
+            ->whereNull('admin_hidden_at')
             ->where('status', 'verified')
+            ->latest()
+            ->get();
+
+        $rejectedPayments = Payment::query()
+            ->with('order.customer.user')
+            ->whereNull('admin_hidden_at')
+            ->where('status', 'rejected')
+            ->latest()
+            ->get();
+
+        $revenueHistoryPayments = Payment::query()
+            ->with('order.customer.user')
+            ->whereNull('admin_hidden_at')
+            ->where('status', 'verified')
+            ->whereHas('order', function ($query) {
+                $query->where('order_status', 'delivered');
+            })
             ->latest()
             ->get();
 
@@ -112,9 +184,22 @@ class DashboardController extends Controller
             ->latest()
             ->get();
 
-        $platformRevenue = Payment::query()->where('status', 'verified')->sum('amount');
+        $platformRevenue = Payment::query()
+            ->whereNull('admin_hidden_at')
+            ->where('status', 'verified')
+            ->whereHas('order', function ($query) {
+                $query->where('order_status', 'delivered');
+            })
+            ->sum('amount');
 
         return Inertia::render('admin/dashboard', [
+            'profileData' => [
+                'username' => Auth::user()?->username,
+                'email' => Auth::user()?->email,
+                'name' => Auth::user()?->name,
+                'phone' => Auth::user()?->superAdmin?->phone,
+            ],
+            'userType' => Auth::user()?->user_type,
             'stats' => [
                 ['label' => 'Pending Products', 'value' => (string) $pendingProducts->count()],
                 ['label' => 'Pending Payments', 'value' => (string) $pendingPayments->count()],
@@ -156,6 +241,7 @@ class DashboardController extends Controller
                     'method' => $payment->method,
                     'amount' => (float) $payment->amount,
                     'customer' => $payment->order?->customer?->user?->name ?? 'Customer',
+                    'customerPhone' => $payment->order?->customer?->phone ?? $payment->order?->recipient_phone,
                     'dateLabel' => optional($payment->created_at)->format('F j, Y \a\t h:i A') ?? '',
                     'reference' => $payment->reference,
                     'notes' => $payment->notes ?? '',
@@ -169,12 +255,44 @@ class DashboardController extends Controller
                     'method' => $payment->method,
                     'amount' => (float) $payment->amount,
                     'customer' => $payment->order?->customer?->user?->name ?? 'Customer',
+                    'customerPhone' => $payment->order?->customer?->phone ?? $payment->order?->recipient_phone,
                     'dateLabel' => optional($payment->created_at)->format('F j, Y \a\t h:i A') ?? '',
                     'reference' => $payment->reference,
                     'notes' => $payment->notes ?? '',
                     'status' => 'verified',
                     'verifiedOn' => $payment->verified_at ? 'Verified on '.$payment->verified_at->format('n/j/Y') : null,
                     'verificationNotes' => $payment->notes,
+                ];
+            })->values(),
+            'initialRejectedPayments' => $rejectedPayments->map(function (Payment $payment) {
+                return [
+                    'paymentId' => $payment->id,
+                    'id' => $payment->order?->order_number ?? 'ORD-'.$payment->order_id,
+                    'method' => $payment->method,
+                    'amount' => (float) $payment->amount,
+                    'customer' => $payment->order?->customer?->user?->name ?? 'Customer',
+                    'customerPhone' => $payment->order?->customer?->phone ?? $payment->order?->recipient_phone,
+                    'dateLabel' => optional($payment->created_at)->format('F j, Y \\a\\t h:i A') ?? '',
+                    'reference' => $payment->reference,
+                    'notes' => $payment->notes ?? '',
+                    'status' => 'rejected',
+                    'verificationNotes' => $payment->notes,
+                ];
+            })->values(),
+            'initialRevenueHistory' => $revenueHistoryPayments->map(function (Payment $payment) {
+                return [
+                    'paymentId' => $payment->id,
+                    'id' => $payment->order?->order_number ?? 'ORD-'.$payment->order_id,
+                    'method' => $payment->method,
+                    'amount' => (float) $payment->amount,
+                    'customer' => $payment->order?->customer?->user?->name ?? 'Customer',
+                    'dateLabel' => optional($payment->created_at)->format('F j, Y \a\t h:i A') ?? '',
+                    'reference' => $payment->reference,
+                    'notes' => $payment->notes ?? '',
+                    'status' => 'verified',
+                    'verifiedOn' => $payment->verified_at ? 'Verified on '.$payment->verified_at->format('n/j/Y') : null,
+                    'verificationNotes' => $payment->notes,
+                    'isArchived' => $payment->admin_archived_at !== null,
                 ];
             })->values(),
             'initialTickets' => $tickets->map(function (SupportTicket $ticket) {

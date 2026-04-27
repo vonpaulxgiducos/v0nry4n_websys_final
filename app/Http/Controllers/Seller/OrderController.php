@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Seller;
 
 use App\Http\Controllers\Controller;
 use App\Models\Order;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -64,15 +65,78 @@ class OrderController extends Controller
         }
 
         $validated = $request->validate([
-            'order_status' => 'required|in:pending,payment_verified,preparing,shipped,delivered,cancelled',
+            'order_status' => 'required|in:pending,payment_verified,preparing,shipped,delivered,cancelled,confirmed,shipped_dispatched,en_route,in_transit,out_for_delivery',
         ]);
 
+        $status = $validated['order_status'];
+
+        $shipmentStatus = match ($status) {
+            'confirmed', 'shipped_dispatched', 'en_route', 'in_transit', 'out_for_delivery', 'delivered' => $status,
+            default => null,
+        };
+
+        $orderStatus = match ($status) {
+            'confirmed' => 'preparing',
+            'shipped_dispatched', 'en_route', 'in_transit', 'out_for_delivery' => 'shipped',
+            default => $status,
+        };
+
         $order->update([
-            'order_status' => $validated['order_status'],
+            'order_status' => $orderStatus,
+            'shipment_status' => $shipmentStatus,
         ]);
 
         return redirect()
             ->route('seller.dashboard', ['section' => 'orders'])
             ->with('success', 'Order status updated successfully.');
+    }
+
+    public function archive(Order $order): RedirectResponse
+    {
+        if ($order->seller_id !== Auth::user()->seller->seller_id) {
+            abort(403);
+        }
+
+        if (! $order->seller_archived_at) {
+            $order->update([
+                'seller_archived_at' => now(),
+            ]);
+        }
+
+        return redirect()
+            ->route('seller.dashboard', ['section' => 'archive'])
+            ->with('success', 'Order archived successfully.');
+    }
+
+    public function unarchive(Order $order): RedirectResponse
+    {
+        if ($order->seller_id !== Auth::user()->seller->seller_id) {
+            abort(403);
+        }
+
+        $order->update([
+            'seller_archived_at' => null,
+        ]);
+
+        return redirect()
+            ->route('seller.dashboard', ['section' => 'archive'])
+            ->with('success', 'Order unarchived successfully.');
+    }
+
+    public function destroy(Order $order): RedirectResponse
+    {
+        if ($order->seller_id !== Auth::user()->seller->seller_id) {
+            abort(403);
+        }
+
+        if (! $order->seller_hidden_at) {
+            $order->update([
+                'seller_hidden_at' => now(),
+            ]);
+        }
+
+        return redirect()
+            ->route('seller.dashboard', ['section' => $order->seller_archived_at ? 'archive' : 'orders'])
+            ->with('success', 'Order removed from your list.');
     }
 }
