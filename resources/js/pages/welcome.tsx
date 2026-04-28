@@ -98,6 +98,54 @@ function EyeOffIcon({ className = 'h-4 w-4' }: { className?: string }) {
     );
 }
 
+function TimedMessage({ message }: { message?: string }) {
+    const [visible, setVisible] = useState(Boolean(message));
+
+    useEffect(() => {
+        setVisible(Boolean(message));
+
+        if (!message) {
+            return;
+        }
+
+        const timer = window.setTimeout(() => setVisible(false), 3000);
+
+        return () => window.clearTimeout(timer);
+    }, [message]);
+
+    if (!visible || !message) {
+        return null;
+    }
+
+    return (
+        <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
+            {message}
+        </div>
+    );
+}
+
+function TimedInputError({ message }: { message?: string }) {
+    const [visible, setVisible] = useState(Boolean(message));
+
+    useEffect(() => {
+        setVisible(Boolean(message));
+
+        if (!message) {
+            return;
+        }
+
+        const timer = window.setTimeout(() => setVisible(false), 3000);
+
+        return () => window.clearTimeout(timer);
+    }, [message]);
+
+    if (!visible || !message) {
+        return null;
+    }
+
+    return <InputError message={message} />;
+}
+
 export default function Welcome() {
     const pageProps = usePage<{ status?: string }>().props;
     const status = pageProps.status;
@@ -110,6 +158,7 @@ export default function Welcome() {
     const [showRegisterPassword, setShowRegisterPassword] = useState(false);
     const [showRegisterPasswordConfirmation, setShowRegisterPasswordConfirmation] =
         useState(false);
+    const [showRegisterPasskey, setShowRegisterPasskey] = useState(false);
 
     const activeRoleInfo = useMemo(
         () => roles.find((role) => role.id === activeRole) ?? roles[0],
@@ -236,11 +285,7 @@ export default function Welcome() {
                                             ? 'Sign in to manage your musical store journey.'
                                             : 'Enter your details to get started.'}
                                     </p>
-                                    {status && (
-                                        <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
-                                            {status}
-                                        </div>
-                                    )}
+                                    <TimedMessage message={status} />
                                 </div>
 
                                 {authMode === 'login' ? (
@@ -653,12 +698,49 @@ export default function Welcome() {
                                                             )}
                                                         </button>
                                                     </div>
-                                                    <InputError
+                                                    <TimedInputError
                                                         message={
                                                             errors.password_confirmation
                                                         }
                                                     />
                                                 </label>
+
+                                                {activeRole === 'super_admin' && (
+                                                    <div className="rounded-2xl border border-amber-400/80 bg-amber-100/10 px-4 py-4">
+                                                        <p className="text-sm font-semibold text-amber-300">
+                                                            Registration Passkey
+                                                        </p>
+                                                        <label className="mt-2 grid gap-2 text-xs font-medium text-slate-200">
+                                                            Passkey (Required)
+                                                            <div className="relative">
+                                                                <input
+                                                                    type={showRegisterPasskey ? 'text' : 'password'}
+                                                                    name="registration_passkey"
+                                                                    required
+                                                                    autoComplete="off"
+                                                                    maxLength={24}
+                                                                    placeholder="Enter passkey from existing user"
+                                                                    className="h-11 w-full rounded-xl border border-amber-400/40 bg-slate-900/40 px-4 pr-20 text-sm text-slate-100 shadow-inner placeholder:text-slate-400 focus:border-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-300/40"
+                                                                />
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setShowRegisterPasskey((prev) => !prev)}
+                                                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 hover:text-white"
+                                                                    aria-label={showRegisterPasskey ? 'Hide passkey' : 'Show passkey'}
+                                                                >
+                                                                    <span className="sr-only">
+                                                                        {showRegisterPasskey ? 'Hide passkey' : 'Show passkey'}
+                                                                    </span>
+                                                                    {showRegisterPasskey ? <EyeOffIcon /> : <EyeIcon />}
+                                                                </button>
+                                                            </div>
+                                                            <p className="text-[11px] font-normal text-slate-400">
+                                                                Contact an administrator for a valid passkey
+                                                            </p>
+                                                            <TimedInputError message={errors.registration_passkey} />
+                                                        </label>
+                                                    </div>
+                                                )}
                                                 <button
                                                     type="submit"
                                                     disabled={processing}

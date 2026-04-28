@@ -77,15 +77,15 @@ type SellerDashboardPageProps = {
 };
 
 const orderStatusStyles: Record<SellerOrder['status'], string> = {
-    delivered: 'bg-emerald-100 text-emerald-700',
-    shipped: 'bg-blue-100 text-blue-700',
-    confirmed: 'bg-emerald-100 text-emerald-700',
-    shipped_dispatched: 'bg-blue-100 text-blue-700',
-    en_route: 'bg-indigo-100 text-indigo-700',
-    in_transit: 'bg-sky-100 text-sky-700',
-    out_for_delivery: 'bg-violet-100 text-violet-700',
-    pending: 'bg-amber-100 text-amber-700',
-    cancelled: 'bg-rose-100 text-rose-700',
+    delivered: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-100',
+    shipped: 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-100',
+    confirmed: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-100',
+    shipped_dispatched: 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-100',
+    en_route: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-100',
+    in_transit: 'bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-100',
+    out_for_delivery: 'bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-100',
+    pending: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-100',
+    cancelled: 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-100',
 };
 
 const orderStatusLabels: Record<SellerOrder['status'], string> = {
@@ -101,13 +101,13 @@ const orderStatusLabels: Record<SellerOrder['status'], string> = {
 };
 
 const productStatusStyles: Record<SellerProduct['status'], string> = {
-    approved: 'bg-emerald-100 text-emerald-700',
-    pending: 'bg-amber-100 text-amber-700',
+    approved: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-100',
+    pending: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-100',
 };
 
 const paymentStatusStyles: Record<SellerOrder['paymentStatus'], string> = {
-    verified: 'bg-emerald-100 text-emerald-700',
-    pending: 'bg-amber-100 text-amber-700',
+    verified: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-100',
+    pending: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-100',
 };
 
 const methodBadgeStyles: Record<string, string> = {
@@ -583,7 +583,7 @@ export default function SellerDashboard({
         <>
             <Head title="Seller Dashboard" />
             <div className="min-h-screen bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-50">
-                <header className="border-b border-slate-200 bg-white/80 backdrop-blur-sm dark:border-slate-800 dark:bg-slate-950/80">
+                <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/80 backdrop-blur-sm dark:border-slate-800 dark:bg-slate-950/80">
                     <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-8 py-5">
                         <div className="flex items-center gap-4">
                             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-linear-to-br from-emerald-500 to-teal-500 text-white shadow-sm">
@@ -625,7 +625,7 @@ export default function SellerDashboard({
                         isSidebarCollapsed ? 'md:grid-cols-[100px_1fr]' : 'md:grid-cols-[320px_1fr]'
                     }`}
                 >
-                    <aside className="self-start rounded-2xl border border-slate-200 bg-white p-6 text-slate-900 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:text-slate-50 md:sticky md:top-8">
+                    <aside className="self-start rounded-2xl border border-slate-200 bg-white p-6 text-slate-900 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:text-slate-50 md:sticky md:top-24">
                         <div className="flex h-full flex-col gap-6">
                             <div className={`flex items-center ${isSidebarCollapsed ? 'justify-center' : 'justify-between'}`}>
                                 {!isSidebarCollapsed && <p className="text-xs font-bold tracking-widest text-slate-400 uppercase">Menu</p>}
@@ -779,7 +779,7 @@ export default function SellerDashboard({
                                             <p className="text-sm text-slate-500">
                                                 {stat.label}
                                             </p>
-                                            <p className="mt-2 text-2xl font-semibold text-slate-900">
+                                            <p className={`mt-2 text-2xl font-semibold ${stat.label === 'Total Orders' ? 'text-green-400' : 'text-slate-900'}`}>
                                                 {stat.value}
                                             </p>
                                         </div>
@@ -794,7 +794,7 @@ export default function SellerDashboard({
                                             Total Revenue
                                         </div>
                                         <p className="mt-1 text-sm text-slate-500">All-time earnings</p>
-                                        <p className="mt-4 text-2xl font-semibold text-emerald-600">
+                                        <p className="mt-4 text-2xl font-semibold text-green-400">
                                             {formatCurrency(totalRevenue)}
                                         </p>
                                     </div>
@@ -817,7 +817,7 @@ export default function SellerDashboard({
                                         <p className="mt-1 text-sm text-slate-500">
                                             Orders awaiting processing
                                         </p>
-                                        <p className="mt-4 text-2xl font-semibold text-indigo-600">
+                                        <p className="mt-4 text-2xl font-semibold text-white">
                                             {pendingOrders}
                                         </p>
                                     </div>
@@ -1348,7 +1348,7 @@ export default function SellerDashboard({
                                                 <button
                                                     type="button"
                                                     onClick={() => handleDeleteOrder(order)}
-                                                    className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-100"
+                                                    className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-100 dark:border-rose-900 dark:bg-rose-950 dark:text-rose-300 dark:hover:bg-rose-900"
                                                 >
                                                     Delete Order
                                                 </button>
@@ -1373,15 +1373,15 @@ export default function SellerDashboard({
                                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                                     <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
                                         <p className="text-sm text-slate-500">Pending Verification</p>
-                                        <p className="mt-2 text-2xl font-semibold text-amber-600">{pendingPayments.length}</p>
+                                        <p className="mt-2 text-2xl font-semibold text-yellow-400">{pendingPayments.length}</p>
                                     </div>
                                     <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
                                         <p className="text-sm text-slate-500">Verified</p>
-                                        <p className="mt-2 text-2xl font-semibold text-emerald-600">{verifiedPayments.length}</p>
+                                        <p className="mt-2 text-2xl font-semibold text-green-400">{verifiedPayments.length}</p>
                                     </div>
                                     <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
                                         <p className="text-sm text-slate-500">Rejected</p>
-                                        <p className="mt-2 text-2xl font-semibold text-rose-600">{rejectedPayments.length}</p>
+                                        <p className="mt-2 text-2xl font-semibold text-red-400">{rejectedPayments.length}</p>
                                     </div>
                                 </div>
 
@@ -1574,7 +1574,7 @@ export default function SellerDashboard({
                                                 <button
                                                     type="button"
                                                     onClick={() => handleDeleteOrder(order)}
-                                                    className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-100"
+                                                    className="rounded-full border border-red-700 bg-red-900 px-4 py-2 text-xs font-semibold text-red-100 transition hover:bg-red-800 dark:border-red-700 dark:bg-red-900 dark:text-red-100 dark:hover:bg-red-800"
                                                 >
                                                     Delete Order
                                                 </button>
@@ -1601,11 +1601,11 @@ export default function SellerDashboard({
                                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                                     <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
                                         <p className="text-sm text-slate-500">Verified Orders</p>
-                                        <p className="mt-2 text-2xl font-semibold text-emerald-600">{revenueHistoryOrders.length}</p>
+                                        <p className="mt-2 text-2xl font-semibold text-green-400">{revenueHistoryOrders.length}</p>
                                     </div>
                                     <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
                                         <p className="text-sm text-slate-500">Archived</p>
-                                        <p className="mt-2 text-2xl font-semibold text-indigo-600">{sellerArchivedOrders.filter((order) => order.paymentStatus === 'verified' && order.status === 'delivered').length}</p>
+                                        <p className="mt-2 text-2xl font-semibold text-white">{sellerArchivedOrders.filter((order) => order.paymentStatus === 'verified' && order.status === 'delivered').length}</p>
                                     </div>
                                     <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
                                         <p className="text-sm text-slate-500">Visible</p>
@@ -1643,7 +1643,7 @@ export default function SellerDashboard({
                                                     <button
                                                         type="button"
                                                         onClick={() => handleArchiveOrder(order)}
-                                                        className="rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700 transition hover:bg-indigo-100"
+                                                        className="rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700 transition hover:bg-indigo-100 dark:border-indigo-900 dark:bg-indigo-950 dark:text-indigo-400 dark:hover:bg-indigo-900"
                                                     >
                                                         Archive
                                                     </button>
@@ -1651,7 +1651,7 @@ export default function SellerDashboard({
                                                     <button
                                                         type="button"
                                                         onClick={() => handleDeleteOrder(order)}
-                                                        className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-100"
+                                                        className="rounded-full border border-red-700 bg-red-900 px-4 py-2 text-xs font-semibold text-red-100 transition hover:bg-red-800 dark:border-red-700 dark:bg-red-900 dark:text-red-100 dark:hover:bg-red-800"
                                                     >
                                                         Delete Order
                                                     </button>
@@ -1712,7 +1712,7 @@ export default function SellerDashboard({
                                                     <button
                                                         type="button"
                                                         onClick={() => handleDeleteOrder(order)}
-                                                        className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-100"
+                                                        className="rounded-full border border-red-700 bg-red-900 px-4 py-2 text-xs font-semibold text-red-100 transition hover:bg-red-800 dark:border-red-700 dark:bg-red-900 dark:text-red-100 dark:hover:bg-red-800"
                                                     >
                                                         Delete Order
                                                     </button>

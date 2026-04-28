@@ -197,13 +197,31 @@ export default function Register() {
                                 </>
                             )}
 
+                            {activeRole === 'super_admin' && (
+                                <div className="grid gap-2">
+                                    <Label htmlFor="registration_passkey">
+                                        Registration Passkey (Required)
+                                    </Label>
+                                    <Input
+                                        id="registration_passkey"
+                                        type="text"
+                                        required
+                                        tabIndex={4}
+                                        name="registration_passkey"
+                                        maxLength={24}
+                                        placeholder="Enter passkey from existing admin"
+                                    />
+                                    <InputError message={errors.registration_passkey} />
+                                </div>
+                            )}
+
                             <div className="grid gap-2">
                                 <Label htmlFor="email">Email address</Label>
                                 <Input
                                     id="email"
                                     type="email"
                                     required
-                                    tabIndex={4}
+                                    tabIndex={5}
                                     autoComplete="email"
                                     name="email"
                                     placeholder="email@example.com"
@@ -216,7 +234,7 @@ export default function Register() {
                                 <Input
                                     id="phone"
                                     type="text"
-                                    tabIndex={5}
+                                    tabIndex={6}
                                     required={activeRole === 'seller'}
                                     autoComplete="tel"
                                     name="phone"
@@ -240,7 +258,7 @@ export default function Register() {
                                     <Input
                                         id="address"
                                         type="text"
-                                        tabIndex={6}
+                                        tabIndex={7}
                                         required={activeRole === 'seller'}
                                         autoComplete="street-address"
                                         name="address"
@@ -257,7 +275,7 @@ export default function Register() {
                                         <Input
                                             id="city"
                                             type="text"
-                                            tabIndex={7}
+                                            tabIndex={8}
                                             autoComplete="address-level2"
                                             name="city"
                                             placeholder="City"
@@ -271,7 +289,7 @@ export default function Register() {
                                         <Input
                                             id="province"
                                             type="text"
-                                            tabIndex={8}
+                                            tabIndex={9}
                                             autoComplete="address-level1"
                                             name="province"
                                             placeholder="Province"
@@ -285,7 +303,7 @@ export default function Register() {
                                         <Input
                                             id="postal_code"
                                             type="text"
-                                            tabIndex={9}
+                                            tabIndex={10}
                                             autoComplete="postal-code"
                                             name="postal_code"
                                             placeholder="Postal code"
@@ -304,7 +322,7 @@ export default function Register() {
                                         id="password"
                                         type={showPassword ? 'text' : 'password'}
                                         required
-                                        tabIndex={10}
+                                        tabIndex={11}
                                         autoComplete="new-password"
                                         name="password"
                                         placeholder="Password"
@@ -340,7 +358,7 @@ export default function Register() {
                                                 : 'password'
                                         }
                                         required
-                                        tabIndex={11}
+                                        tabIndex={12}
                                         autoComplete="new-password"
                                         name="password_confirmation"
                                         placeholder="Confirm password"
@@ -380,7 +398,7 @@ export default function Register() {
                             <Button
                                 type="submit"
                                 className="mt-2 w-full"
-                                tabIndex={12}
+                                tabIndex={13}
                                 data-test="register-user-button"
                             >
                                 {processing && <Spinner />}
@@ -390,7 +408,7 @@ export default function Register() {
 
                         <div className="text-center text-sm text-muted-foreground">
                             Already have an account?{' '}
-                            <TextLink href={login()} tabIndex={13}>
+                            <TextLink href={login()} tabIndex={14}>
                                 Log in
                             </TextLink>
                         </div>

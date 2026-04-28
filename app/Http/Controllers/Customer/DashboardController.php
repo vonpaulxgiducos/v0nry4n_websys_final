@@ -110,6 +110,7 @@ class DashboardController extends Controller
                     'store' => $order->seller?->business_name ?? $order->seller?->user?->name ?? 'Seller',
                     'amount' => '₱'.number_format((float) $order->total_amount, 0),
                     'status' => $this->mapOrderStatus($order),
+                    'paymentStatus' => $order->payment?->status === 'verified' ? 'verified' : 'pending',
                     'paymentMethod' => $this->mapPaymentMethod($order->payment?->method),
                 ];
             })->values(),

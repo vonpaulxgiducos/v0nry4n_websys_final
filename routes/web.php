@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
+use App\Http\Controllers\Auth\AdminPasskeyResetController;
 use App\Http\Controllers\Customer\CartController as CustomerCartController;
 use App\Http\Controllers\Customer\DashboardController as CustomerDashboardController;
 use App\Http\Controllers\Seller\DashboardController as SellerDashboardController;
@@ -19,6 +20,15 @@ Route::get('/', function () {
         'status' => session('status'),
     ]);
 })->name('home');
+
+Route::middleware('guest')->group(function () {
+    Route::get('admin/forgot-password', [AdminPasskeyResetController::class, 'create'])
+        ->name('admin.passkey-password.request');
+
+    Route::post('admin/forgot-password', [AdminPasskeyResetController::class, 'store'])
+        ->middleware('throttle:10,1')
+        ->name('admin.passkey-password.store');
+});
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::middleware('role:customer')->group(function () {

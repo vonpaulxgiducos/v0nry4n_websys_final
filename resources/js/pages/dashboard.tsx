@@ -25,6 +25,8 @@ type DashboardOrder = {
     store: string;
     amount: string;
     paymentMethod: string;
+    date: string;
+    paymentStatus: 'verified' | 'pending';
     status:
         | 'delivered'
         | 'shipped'
@@ -187,9 +189,9 @@ const defaultStats = [
 ];
 
 const defaultDashboardOrders: DashboardOrder[] = [
-    { id: 'ORD-2024-00001', store: 'Music Hub Philippines', amount: '₱8,750', paymentMethod: 'Cash on Delivery', status: 'delivered' },
-    { id: 'ORD-2024-00002', store: 'Guitar World Manila', amount: '₱45,500', paymentMethod: 'GCash', status: 'shipped' },
-    { id: 'ORD-2024-00003', store: 'Music Hub Philippines', amount: '₱12,800', paymentMethod: 'Cash on Delivery', status: 'pending' },
+    { id: 'ORD-2024-00001', store: 'Music Hub Philippines', amount: '₱8,750', paymentMethod: 'Cash on Delivery', date: 'February 7, 2024', paymentStatus: 'verified', status: 'delivered' },
+    { id: 'ORD-2024-00002', store: 'Guitar World Manila', amount: '₱45,500', paymentMethod: 'GCash', date: 'February 9, 2024', paymentStatus: 'verified', status: 'shipped' },
+    { id: 'ORD-2024-00003', store: 'Music Hub Philippines', amount: '₱12,800', paymentMethod: 'Cash on Delivery', date: 'February 14, 2024', paymentStatus: 'pending', status: 'pending' },
 ];
 
 const defaultProducts: Product[] = [
@@ -354,27 +356,27 @@ const browseCategoryOptions = [
 ];
 
 const dashboardStatusStyles: Record<DashboardOrder['status'], string> = {
-    delivered: 'bg-emerald-100 text-emerald-700',
-    shipped: 'bg-blue-100 text-blue-700',
-    confirmed: 'bg-emerald-100 text-emerald-700',
-    shipped_dispatched: 'bg-blue-100 text-blue-700',
-    en_route: 'bg-indigo-100 text-indigo-700',
-    in_transit: 'bg-sky-100 text-sky-700',
-    out_for_delivery: 'bg-violet-100 text-violet-700',
-    pending: 'bg-amber-100 text-amber-700',
-    cancelled: 'bg-rose-100 text-rose-700',
+    delivered: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-100',
+    shipped: 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-100',
+    confirmed: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-100',
+    shipped_dispatched: 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-100',
+    en_route: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-100',
+    in_transit: 'bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-100',
+    out_for_delivery: 'bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-100',
+    pending: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-100',
+    cancelled: 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-100',
 };
 
 const orderStatusStyles: Record<OrderDetail['status'], string> = {
-    delivered: 'bg-emerald-100 text-emerald-700',
-    shipped: 'bg-blue-100 text-blue-700',
-    confirmed: 'bg-emerald-100 text-emerald-700',
-    shipped_dispatched: 'bg-blue-100 text-blue-700',
-    en_route: 'bg-indigo-100 text-indigo-700',
-    in_transit: 'bg-sky-100 text-sky-700',
-    out_for_delivery: 'bg-violet-100 text-violet-700',
-    pending: 'bg-amber-100 text-amber-700',
-    cancelled: 'bg-rose-100 text-rose-700',
+    delivered: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-100',
+    shipped: 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-100',
+    confirmed: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-100',
+    shipped_dispatched: 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-100',
+    en_route: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-100',
+    in_transit: 'bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-100',
+    out_for_delivery: 'bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-100',
+    pending: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-100',
+    cancelled: 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-100',
 };
 
 const orderStatusLabels: Record<OrderDetail['status'], string> = {
@@ -390,13 +392,13 @@ const orderStatusLabels: Record<OrderDetail['status'], string> = {
 };
 
 const paymentStatusStyles: Record<OrderDetail['paymentStatus'], string> = {
-    verified: 'bg-emerald-100 text-emerald-700',
-    pending: 'bg-amber-100 text-amber-700',
+    verified: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-100',
+    pending: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-100',
 };
 
 const ticketStatusStyles: Record<Ticket['status'], string> = {
-    resolved: 'bg-emerald-100 text-emerald-700',
-    open: 'bg-amber-100 text-amber-700',
+    resolved: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-100',
+    open: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-100',
 };
 
 const formatCurrency = (amount: number) =>
@@ -770,7 +772,7 @@ export default function Dashboard({
             {
                 subject: ticketSubject.trim(),
                 message: ticketMessage.trim(),
-                priority: 'medium',
+                priority: 'high',
             },
             {
                 preserveScroll: true,
@@ -849,7 +851,7 @@ export default function Dashboard({
         <>
             <Head title="Customer Dashboard" />
             <div className="min-h-screen bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-50">
-                <header className="border-b border-slate-200 bg-white/80 backdrop-blur-sm dark:border-slate-800 dark:bg-slate-950/80">
+                <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/80 backdrop-blur-sm dark:border-slate-800 dark:bg-slate-950/80">
                     <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-8 py-5">
                         <div className="flex items-center gap-4">
                             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-linear-to-br from-blue-500 to-cyan-500 text-white shadow-sm">
@@ -881,7 +883,7 @@ export default function Dashboard({
                         isSidebarCollapsed ? 'md:grid-cols-[100px_1fr]' : 'md:grid-cols-[320px_1fr]'
                     }`}
                 >
-                    <aside className="self-start rounded-2xl border border-slate-200 bg-white p-6 text-slate-900 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:text-slate-50 md:sticky md:top-8">
+                    <aside className="self-start rounded-2xl border border-slate-200 bg-white p-6 text-slate-900 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:text-slate-50 md:sticky md:top-24">
                         <div className="flex h-full flex-col gap-6">
                             <div className={`flex items-center ${isSidebarCollapsed ? 'justify-center' : 'justify-between'}`}>
                                 {!isSidebarCollapsed && <p className="text-xs font-bold tracking-widest text-slate-400 uppercase">Menu</p>}
@@ -1000,7 +1002,7 @@ export default function Dashboard({
                         </div>
                     </aside>
 
-                    <section className="min-w-0 space-y-8 dark:[&_.bg-white]:bg-slate-900 dark:[&_.border-slate-200]:border-slate-700 dark:[&_.text-slate-900]:text-slate-50 dark:[&_.text-slate-600]:text-slate-300 dark:[&_.text-slate-500]:text-slate-400 dark:[&_.bg-slate-100]:bg-slate-800 dark:shadow-lg">
+                    <section className="min-w-0 space-y-6 dark:[&_.bg-white]:bg-slate-900 dark:[&_.border-slate-200]:border-slate-700 dark:[&_.text-slate-900]:text-slate-50 dark:[&_.text-slate-600]:text-slate-300 dark:[&_.text-slate-500]:text-slate-400 dark:[&_.bg-slate-100]:bg-slate-800 dark:shadow-lg">
                         {siteNotification && (
                             <div
                                 className={`rounded-lg border px-4 py-3 text-sm font-medium shadow-sm ${
@@ -1016,33 +1018,62 @@ export default function Dashboard({
                         {activeSection === 'dashboard' && (
                             <>
                                 <div>
-                                    <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-50">Welcome back, {firstName}!</h1>
-                                    <p className="mt-1 text-sm font-medium text-slate-500 dark:text-slate-400">Manage your orders and explore musical instruments</p>
+                                    <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-50">Welcome back, {firstName}!</h1>
+                                    <p className="text-sm text-slate-500 dark:text-slate-400">Manage your orders and explore musical instruments</p>
                                 </div>
 
                                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                                     {stats.map((stat) => (
-                                        <article key={stat.label} className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                                            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{stat.label}</p>
-                                            <p className="mt-3 text-3xl font-bold text-slate-900 dark:text-slate-50">{stat.value}</p>
+                                        <article key={stat.label} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                                            <p className="text-sm text-slate-500 dark:text-slate-400">{stat.label}</p>
+                                            <p className="mt-2 text-2xl font-semibold text-slate-900 dark:text-slate-50">{stat.value}</p>
                                         </article>
                                     ))}
                                 </div>
 
-                                <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                                    <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Recent Orders</h2>
-                                    <p className="mt-0.5 text-sm font-medium text-slate-500 dark:text-slate-400">Your latest purchases</p>
-                                    <div className="mt-6 divide-y divide-slate-200 dark:divide-slate-800">
+                                <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                                    <div>
+                                        <h2 className="text-base font-semibold text-slate-900 dark:text-slate-50">Recent Orders</h2>
+                                        <p className="text-sm text-slate-500 dark:text-slate-400">Your latest purchases</p>
+                                    </div>
+                                    <div className="mt-4 grid gap-4">
                                         {dashboardOrders.map((order) => (
-                                            <div key={order.id} className="flex items-center justify-between py-4 first:pt-0 last:pb-0">
-                                                <div>
-                                                    <p className="font-semibold text-slate-900 dark:text-slate-50">{order.id}</p>
-                                                    <p className="text-sm text-slate-500 dark:text-slate-400">{order.store}</p>
+                                            <div
+                                                key={order.id}
+                                                className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900"
+                                            >
+                                                <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
+                                                    <div>
+                                                        <p className="font-semibold text-slate-900 dark:text-slate-50">
+                                                            {order.id}
+                                                        </p>
+                                                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                                                            {order.store}
+                                                        </p>
+                                                        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                                                            {order.date}
+                                                        </p>
+                                                    </div>
+                                                    <div className="text-left sm:text-right">
+                                                        <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">
+                                                            {order.amount}
+                                                        </p>
+                                                        <span
+                                                            className={`mt-1 inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
+                                                                dashboardStatusStyles[order.status]
+                                                            }`}
+                                                        >
+                                                            {orderStatusLabels[order.status]}
+                                                        </span>
+                                                    </div>
                                                 </div>
-                                                <div className="text-right">
-                                                    <p className="font-semibold text-slate-900 dark:text-slate-50">{order.amount}</p>
-                                                    <span className={`mt-1 inline-flex rounded-full px-3 py-1 text-xs font-semibold ${dashboardStatusStyles[order.status]}`}>
-                                                        {orderStatusLabels[order.status]}
+                                                <div className="mt-4 border-t border-slate-200 pt-3 dark:border-slate-800">
+                                                    <span
+                                                        className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                                                            paymentStatusStyles[order.paymentStatus]
+                                                        }`}
+                                                    >
+                                                        Payment: {order.paymentStatus}
                                                     </span>
                                                 </div>
                                             </div>
@@ -1055,11 +1086,11 @@ export default function Dashboard({
                         {activeSection === 'browse' && (
                             <>
                                 <div>
-                                    <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-50">Browse Products</h1>
-                                    <p className="mt-1 text-sm font-medium text-slate-500 dark:text-slate-400">Discover musical instruments and accessories</p>
+                                    <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-50">Browse Products</h1>
+                                    <p className="text-sm text-slate-500 dark:text-slate-400">Discover musical instruments and accessories</p>
                                 </div>
 
-                                <div className="flex flex-col gap-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 md:flex-row md:items-center">
+                                <div className="space-y-2 rounded-lg border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-800 dark:bg-slate-900">
                                     <div className="flex flex-1 items-center gap-3 rounded-lg border border-slate-300 bg-white px-4 py-2.5 dark:border-slate-600 dark:bg-slate-800">
                                         <svg viewBox="0 0 24 24" className="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                             <circle cx="11" cy="11" r="8" />
@@ -1073,9 +1104,7 @@ export default function Dashboard({
                                             className="w-full bg-transparent text-sm text-slate-700 placeholder-slate-400 dark:text-slate-100 dark:placeholder-slate-500 focus:outline-none"
                                         />
                                     </div>
-                                </div>
 
-                                <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-800 dark:bg-slate-900">
                                     <div className="flex flex-wrap gap-1.5">
                                         {browseCategoryOptions.map((option) => {
                                             const isActive = category === option;
@@ -1087,7 +1116,7 @@ export default function Dashboard({
                                                     onClick={() => setCategory(option)}
                                                     className={`rounded-md border px-3 py-1.5 text-xs font-medium transition ${
                                                         isActive
-                                                            ? 'border-blue-300 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-300'
+                                                            ? 'border-blue-300 bg-blue-50 text-black dark:border-blue-700 dark:bg-blue-900 dark:text-white'
                                                             : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'
                                                     }`}
                                                 >
@@ -1096,53 +1125,55 @@ export default function Dashboard({
                                             );
                                         })}
                                     </div>
-                                </div>
 
-                                <div className="flex flex-wrap gap-1.5">
-                                    {([
-                                        { key: 'name-asc', label: 'A-Z' },
-                                        { key: 'name-desc', label: 'Z-A' },
-                                        { key: 'price-asc', label: 'Price: Low to High' },
-                                        { key: 'price-desc', label: 'Price: High to Low' },
-                                    ] as const).map((option) => (
+                                    <div className="border-t border-slate-300 dark:border-slate-600"></div>
+
+                                    <div className="flex flex-wrap gap-1.5">
+                                        {([
+                                            { key: 'name-asc', label: 'A-Z' },
+                                            { key: 'name-desc', label: 'Z-A' },
+                                            { key: 'price-asc', label: 'Price: Low to High' },
+                                            { key: 'price-desc', label: 'Price: High to Low' },
+                                        ] as const).map((option) => (
+                                            <button
+                                                key={option.key}
+                                                type="button"
+                                                onClick={() => setSortBy(option.key)}
+                                                className={`rounded-md border px-3 py-1.5 text-xs font-medium transition ${
+                                                    sortBy === option.key
+                                                        ? 'border-blue-300 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-300'
+                                                        : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'
+                                                }`}
+                                            >
+                                                {option.label}
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    <div className="flex gap-2">
                                         <button
-                                            key={option.key}
                                             type="button"
-                                            onClick={() => setSortBy(option.key)}
+                                            onClick={() => setIsDateDescending(false)}
                                             className={`rounded-md border px-3 py-1.5 text-xs font-medium transition ${
-                                                sortBy === option.key
+                                                !isDateDescending
                                                     ? 'border-blue-300 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-300'
                                                     : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'
                                             }`}
                                         >
-                                            {option.label}
+                                            Latest
                                         </button>
-                                    ))}
-                                </div>
-
-                                <div className="flex gap-2">
-                                    <button
-                                        type="button"
-                                        onClick={() => setIsDateDescending(false)}
-                                        className={`rounded-md border px-3 py-1.5 text-xs font-medium transition ${
-                                            !isDateDescending
-                                                ? 'border-blue-300 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-300'
-                                                : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'
-                                        }`}
-                                    >
-                                        Latest
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => setIsDateDescending(true)}
-                                        className={`rounded-md border px-3 py-1.5 text-xs font-medium transition ${
-                                            isDateDescending
-                                                ? 'border-blue-300 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-300'
-                                                : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'
-                                        }`}
-                                    >
-                                        Oldest
-                                    </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsDateDescending(true)}
+                                            className={`rounded-md border px-3 py-1.5 text-xs font-medium transition ${
+                                                isDateDescending
+                                                    ? 'border-blue-300 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-300'
+                                                    : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'
+                                            }`}
+                                        >
+                                            Oldest
+                                        </button>
+                                    </div>
                                 </div>
 
                                 <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
@@ -1216,8 +1247,8 @@ export default function Dashboard({
                         {activeSection === 'cart' && (
                             <>
                                 <div>
-                                    <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-50">Shopping Cart</h1>
-                                    <p className="mt-1 text-sm font-medium text-slate-500 dark:text-slate-400">Review your items before checkout</p>
+                                    <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-50">Shopping Cart</h1>
+                                    <p className="text-sm text-slate-500 dark:text-slate-400">Review your items before checkout</p>
                                 </div>
 
                                 {cartItems.length === 0 ? (
@@ -1509,7 +1540,7 @@ export default function Dashboard({
                                                         <button
                                                             type="button"
                                                             onClick={() => handleMarkOrderReceived(order)}
-                                                            className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100"
+                                                            className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-100 dark:hover:bg-emerald-900"
                                                         >
                                                             Mark as Received
                                                         </button>
@@ -1519,7 +1550,7 @@ export default function Dashboard({
                                                         <button
                                                             type="button"
                                                             onClick={() => handleCancelOrDeleteOrder(order)}
-                                                            className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-600 transition hover:bg-rose-100"
+                                                            className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-600 transition hover:bg-rose-100 dark:border-rose-800 dark:bg-rose-950 dark:text-rose-100 dark:hover:bg-rose-900"
                                                         >
                                                             Cancel Order
                                                         </button>
@@ -1609,7 +1640,7 @@ export default function Dashboard({
                                                 <button
                                                     type="button"
                                                     onClick={() => handleCancelOrDeleteOrder(order)}
-                                                    className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-600 transition hover:bg-rose-100"
+                                                    className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-600 transition hover:bg-rose-100 dark:border-rose-900 dark:bg-rose-950 dark:text-rose-300 dark:hover:bg-rose-900"
                                                 >
                                                     Delete Order
                                                 </button>

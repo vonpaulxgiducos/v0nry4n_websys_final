@@ -40,6 +40,7 @@ export interface ProfileData {
     business_name?: string;
     phone?: string;
     address?: string;
+    registration_passkey?: string;
 }
 
 export type UserType = 'customer' | 'seller' | 'super_admin';

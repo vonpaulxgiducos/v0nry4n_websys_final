@@ -95,7 +95,7 @@ return new class extends Migration
             $table->foreignId('assigned_to')->nullable()->constrained('users')->nullOnDelete();
             $table->string('subject', 200);
             $table->text('message');
-            $table->enum('priority', ['low', 'medium', 'high'])->default('medium');
+            $table->enum('priority', ['low', 'high'])->default('high');
             $table->enum('status', ['open', 'in_progress', 'resolved'])->default('open');
             $table->timestamp('resolved_at')->nullable();
             $table->timestamps();

@@ -209,6 +209,7 @@ class DashboardController extends Controller
                 'email' => Auth::user()?->email,
                 'name' => Auth::user()?->name,
                 'phone' => Auth::user()?->superAdmin?->phone,
+                'registration_passkey' => Auth::user()?->superAdmin?->registration_passkey,
             ],
             'userType' => Auth::user()?->user_type,
             'stats' => [

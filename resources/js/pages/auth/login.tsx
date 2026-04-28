@@ -66,6 +66,32 @@ function EyeOffIcon({ className = 'h-4 w-4' }: { className?: string }) {
     );
 }
 
+function TimedMessage({ message }: { message?: string }) {
+    const [visible, setVisible] = useState(Boolean(message));
+
+    useEffect(() => {
+        setVisible(Boolean(message));
+
+        if (!message) {
+            return;
+        }
+
+        const timer = window.setTimeout(() => setVisible(false), 3000);
+
+        return () => window.clearTimeout(timer);
+    }, [message]);
+
+    if (!visible || !message) {
+        return null;
+    }
+
+    return (
+        <div className="mb-4 text-center text-sm font-medium text-green-600">
+            {message}
+        </div>
+    );
+}
+
 export default function Login({
     status,
     canResetPassword,
@@ -158,7 +184,15 @@ export default function Login({
                             <div className="grid gap-2">
                                 <div className="flex items-center">
                                     <Label htmlFor="password">Password</Label>
-                                    {canResetPassword && (
+                                    {activeRole === 'super_admin' ? (
+                                        <TextLink
+                                            href="/admin/forgot-password"
+                                            className="ml-auto text-sm"
+                                            tabIndex={5}
+                                        >
+                                            Forgot password?
+                                        </TextLink>
+                                    ) : canResetPassword && (
                                         <TextLink
                                             href={request()}
                                             className="ml-auto text-sm"
@@ -233,11 +267,7 @@ export default function Login({
                 )}
             </Form>
 
-            {status && (
-                <div className="mb-4 text-center text-sm font-medium text-green-600">
-                    {status}
-                </div>
-            )}
+            <TimedMessage message={status} />
         </AuthLayout>
     );
 }

@@ -51,7 +51,7 @@ type TicketItem = {
     message: string;
     customer: string;
     date: string;
-    priority: 'low' | 'medium' | 'high';
+    priority: 'low' | 'high';
     status: 'open' | 'in_progress' | 'resolved';
     relatedOrder?: string;
 };
@@ -308,7 +308,7 @@ const defaultInitialTickets: TicketItem[] = [
         message: 'Do you ship to provinces outside Metro Manila?',
         customer: 'John Doe',
         date: '2/14/2024',
-        priority: 'medium',
+        priority: 'high',
         status: 'open',
     },
     {
@@ -331,15 +331,14 @@ const formatCurrency = (value: number) =>
     })}`;
 
 const ticketStyles: Record<TicketItem['status'], string> = {
-    open: 'bg-amber-100 text-amber-700',
-    in_progress: 'bg-blue-100 text-blue-700',
-    resolved: 'bg-emerald-100 text-emerald-700',
+    open: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-100',
+    in_progress: 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-100',
+    resolved: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-100',
 };
 
 const priorityStyles: Record<TicketItem['priority'], string> = {
-    low: 'bg-blue-100 text-blue-700',
-    medium: 'bg-amber-100 text-amber-700',
-    high: 'bg-red-100 text-red-700',
+    low: 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-100',
+    high: 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-100',
 };
 
 const methodBadgeStyles: Record<string, string> = {
@@ -653,7 +652,7 @@ export default function AdminDashboard({
         <>
             <Head title="Admin Dashboard" />
             <div className="min-h-screen bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-50">
-                <header className="border-b border-slate-200 bg-white/80 backdrop-blur-sm dark:border-slate-800 dark:bg-slate-950/80">
+                <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/80 backdrop-blur-sm dark:border-slate-800 dark:bg-slate-950/80">
                     <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-8 py-5">
                         <div className="flex items-center gap-4">
                             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-linear-to-br from-purple-500 to-pink-500 text-white shadow-sm">
@@ -695,7 +694,7 @@ export default function AdminDashboard({
                         isSidebarCollapsed ? 'md:grid-cols-[100px_1fr]' : 'md:grid-cols-[320px_1fr]'
                     }`}
                 >
-                    <aside className="self-start rounded-2xl border border-slate-200 bg-white p-6 text-slate-900 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:text-slate-50 md:sticky md:top-8">
+                    <aside className="self-start rounded-2xl border border-slate-200 bg-white p-6 text-slate-900 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:text-slate-50 md:sticky md:top-24">
                         <div className="flex h-full flex-col gap-6">
                             <div className={`flex items-center ${isSidebarCollapsed ? 'justify-center' : 'justify-between'}`}>
                                 {!isSidebarCollapsed && <p className="text-xs font-bold tracking-widest text-slate-400 uppercase">Menu</p>}
@@ -829,9 +828,9 @@ export default function AdminDashboard({
                                     {stats.map((stat) => (
                                         <div
                                             key={stat.label}
-                                            className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+                                            className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:bg-slate-900 dark:border-slate-700"
                                         >
-                                            <div className="flex items-center gap-2 text-sm text-slate-500">
+                                            <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
                                                 <svg
                                                     viewBox="0 0 24 24"
                                                     className="h-4 w-4"
@@ -845,17 +844,7 @@ export default function AdminDashboard({
                                                 </svg>
                                                 {stat.label}
                                             </div>
-                                            <p
-                                                className={`mt-2 text-2xl font-semibold ${
-                                                    stat.label === 'Pending Products'
-                                                        ? 'text-amber-600'
-                                                        : stat.label === 'Pending Payments'
-                                                          ? 'text-orange-600'
-                                                          : stat.label === 'Open Tickets'
-                                                            ? 'text-indigo-600'
-                                                            : 'text-slate-900'
-                                                }`}
-                                            >
+                                            <p className={`mt-2 text-2xl font-semibold ${stat.label === 'Total Orders' ? 'text-green-400' : 'text-slate-900 dark:text-white'}`}>
                                                 {stat.value}
                                             </p>
                                         </div>
@@ -863,21 +852,21 @@ export default function AdminDashboard({
                                 </div>
 
                                 <div className="grid gap-4 lg:grid-cols-2">
-                                    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                                        <div className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+                                    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:bg-slate-900 dark:border-slate-700">
+                                        <div className="flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-slate-100">
                                             <span className="text-emerald-500">$
                                             </span>
                                             Platform Revenue
                                         </div>
-                                        <p className="mt-1 text-sm text-slate-500">
+                                        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                                             Total transaction value
                                         </p>
-                                        <p className="mt-4 text-2xl font-semibold text-emerald-600">
+                                        <p className="mt-4 text-2xl font-semibold text-emerald-400 dark:text-emerald-300">
                                             {formatCurrency(platformRevenue)}
                                         </p>
                                     </div>
                                     <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                                        <div className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+                                        <div className="flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-slate-100">
                                             <svg
                                                 viewBox="0 0 24 24"
                                                 className="h-4 w-4 text-indigo-500"
@@ -892,10 +881,10 @@ export default function AdminDashboard({
                                             </svg>
                                             Active Products
                                         </div>
-                                        <p className="mt-1 text-sm text-slate-500">
+                                        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                                             Approved and available products
                                         </p>
-                                        <p className="mt-4 text-2xl font-semibold text-indigo-600 dark:text-violet-200">
+                                        <p className="mt-4 text-2xl font-semibold text-slate-900 dark:text-white">
                                             {activeProducts}
                                         </p>
                                     </div>
@@ -923,7 +912,7 @@ export default function AdminDashboard({
                                                     <p className="text-xs text-slate-500">
                                                         by {item.seller}
                                                     </p>
-                                                    <p className="mt-1 text-sm text-indigo-600">
+                                                    <p className="mt-1 text-sm text-violet-400 dark:text-violet-300">
                                                         {formatCurrency(item.price)}
                                                     </p>
                                                 </div>
@@ -957,7 +946,7 @@ export default function AdminDashboard({
                                                     <p className="text-xs text-slate-500">
                                                         {payment.method}
                                                     </p>
-                                                    <p className="mt-1 text-sm text-indigo-600">
+                                                    <p className="mt-1 text-sm text-violet-400 dark:text-violet-300">
                                                         {formatCurrency(payment.amount)}
                                                     </p>
                                                 </div>
@@ -986,21 +975,21 @@ export default function AdminDashboard({
                                     </div>
 
                                     <div className="grid gap-4 md:grid-cols-3">
-                                        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                                            <p className="text-sm text-slate-500">Pending Review</p>
-                                            <p className="mt-2 text-2xl font-semibold text-amber-600">
+                                        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:bg-slate-900 dark:border-slate-700">
+                                            <p className="text-sm text-slate-500 dark:text-slate-400">Pending Review</p>
+                                            <p className="mt-2 text-2xl font-semibold text-slate-900 dark:text-white">
                                                 {approvals.length}
                                             </p>
                                         </div>
-                                        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                                            <p className="text-sm text-slate-500">Approved</p>
-                                            <p className="mt-2 text-2xl font-semibold text-emerald-600">
+                                        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:bg-slate-900 dark:border-slate-700">
+                                            <p className="text-sm text-slate-500 dark:text-slate-400">Approved</p>
+                                            <p className="mt-2 text-2xl font-semibold text-emerald-400 dark:text-emerald-300">
                                                 {approvedProducts.length}
                                             </p>
                                         </div>
-                                        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                                            <p className="text-sm text-slate-500">Rejected</p>
-                                            <p className="mt-2 text-2xl font-semibold text-red-600">
+                                        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:bg-slate-900 dark:border-slate-700">
+                                            <p className="text-sm text-slate-500 dark:text-slate-400">Rejected</p>
+                                            <p className="mt-2 text-2xl font-semibold text-red-400 dark:text-red-300">
                                                 {rejectedProductsCount}
                                             </p>
                                         </div>
@@ -1041,7 +1030,7 @@ export default function AdminDashboard({
                                                     </div>
                                                     <div className="flex items-center justify-between">
                                                         <span className="text-slate-500">Price</span>
-                                                        <span className="font-semibold text-indigo-600 dark:text-violet-200">
+                                                        <span className="font-semibold text-violet-400 dark:text-violet-300">
                                                             {formatCurrency(approvals[0].price)}
                                                         </span>
                                                     </div>
@@ -1197,7 +1186,7 @@ export default function AdminDashboard({
                                                         </div>
                                                         <div className="flex items-center justify-between">
                                                             <span className="text-slate-500">Price</span>
-                                                            <span className="font-semibold text-indigo-600 dark:text-violet-200">
+                                                            <span className="font-semibold text-violet-400 dark:text-violet-300">
                                                                 {formatCurrency(item.price)}
                                                             </span>
                                                         </div>
@@ -1237,21 +1226,21 @@ export default function AdminDashboard({
                                     </div>
 
                                     <div className="grid gap-4 md:grid-cols-3">
-                                        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                                            <p className="text-sm text-slate-500">Pending Verification</p>
-                                            <p className="mt-2 text-2xl font-semibold text-amber-600">
+                                        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:bg-slate-900 dark:border-slate-700">
+                                            <p className="text-sm text-slate-500 dark:text-slate-400">Pending Verification</p>
+                                            <p className="mt-2 text-2xl font-semibold text-slate-900 dark:text-white">
                                                 {pendingPayments.length}
                                             </p>
                                         </div>
-                                        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                                            <p className="text-sm text-slate-500">Verified</p>
-                                            <p className="mt-2 text-2xl font-semibold text-emerald-600">
+                                        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:bg-slate-900 dark:border-slate-700">
+                                            <p className="text-sm text-slate-500 dark:text-slate-400">Verified</p>
+                                            <p className="mt-2 text-2xl font-semibold text-emerald-400 dark:text-emerald-300">
                                                 {verifiedPayments.length}
                                             </p>
                                         </div>
-                                        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                                            <p className="text-sm text-slate-500">Rejected</p>
-                                            <p className="mt-2 text-2xl font-semibold text-red-600">
+                                        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:bg-slate-900 dark:border-slate-700">
+                                            <p className="text-sm text-slate-500 dark:text-slate-400">Rejected</p>
+                                            <p className="mt-2 text-2xl font-semibold text-red-400 dark:text-red-300">
                                                 {rejectedPayments.length}
                                             </p>
                                         </div>
@@ -1299,7 +1288,7 @@ export default function AdminDashboard({
                                                 </div>
                                                 <div className="flex items-center justify-between">
                                                     <span className="text-slate-500">Amount</span>
-                                                        <span className="text-xl font-semibold text-indigo-600 dark:text-violet-200">
+                                                        <span className="text-xl font-semibold text-slate-900 dark:text-white">
                                                         {formatCurrency(pendingPayments[0].amount)}
                                                     </span>
                                                 </div>
@@ -1391,7 +1380,7 @@ export default function AdminDashboard({
                                                     </div>
                                                     <div className="flex items-center justify-between">
                                                         <span className="text-slate-500">Amount</span>
-                                                        <span className="text-xl font-semibold text-indigo-600 dark:text-violet-200">
+                                                        <span className="text-xl font-semibold text-slate-900 dark:text-white">
                                                             {formatCurrency(payment.amount)}
                                                         </span>
                                                     </div>
@@ -1476,7 +1465,7 @@ export default function AdminDashboard({
                                                     </div>
                                                     <div className="flex items-center justify-between">
                                                         <span className="text-slate-500">Amount</span>
-                                                        <span className="text-xl font-semibold text-indigo-600 dark:text-violet-200">
+                                                        <span className="text-xl font-semibold text-slate-900 dark:text-white">
                                                             {formatCurrency(payment.amount)}
                                                         </span>
                                                     </div>
@@ -1522,21 +1511,21 @@ export default function AdminDashboard({
                                     </div>
 
                                     <div className="grid gap-4 md:grid-cols-3">
-                                        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                                            <p className="text-sm text-slate-500">Total Records</p>
-                                            <p className="mt-2 text-2xl font-semibold text-slate-900">
+                                        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:bg-slate-900 dark:border-slate-700">
+                                            <p className="text-sm text-slate-500 dark:text-slate-400">Total Records</p>
+                                            <p className="mt-2 text-2xl font-semibold text-slate-900 dark:text-white">
                                                 {revenueHistory.length}
                                             </p>
                                         </div>
-                                        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                                            <p className="text-sm text-slate-500">Archived</p>
-                                            <p className="mt-2 text-2xl font-semibold text-indigo-600 dark:text-violet-200">
+                                        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:bg-slate-900 dark:border-slate-700">
+                                            <p className="text-sm text-slate-500 dark:text-slate-400">Archived</p>
+                                            <p className="mt-2 text-2xl font-semibold text-slate-900 dark:text-white">
                                                 {revenueHistory.filter((item) => item.isArchived).length}
                                             </p>
                                         </div>
-                                        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                                            <p className="text-sm text-slate-500">Visible</p>
-                                            <p className="mt-2 text-2xl font-semibold text-emerald-600">
+                                        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:bg-slate-900 dark:border-slate-700">
+                                            <p className="text-sm text-slate-500 dark:text-slate-400">Visible</p>
+                                            <p className="mt-2 text-2xl font-semibold text-slate-900 dark:text-white">
                                                 {revenueHistory.filter((item) => !item.isArchived).length}
                                             </p>
                                         </div>
@@ -1567,7 +1556,7 @@ export default function AdminDashboard({
                                                     <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">{payment.dateLabel}</p>
                                                     <div className="mt-4 grid gap-1 text-sm">
                                                         <p>Customer: <span className="font-semibold text-slate-900 dark:text-slate-100">{payment.customer}</span></p>
-                                                        <p>Amount: <span className="font-semibold text-indigo-600 dark:text-violet-200">{formatCurrency(payment.amount)}</span></p>
+                                                        <p>Amount: <span className="font-semibold text-slate-900 dark:text-white">{formatCurrency(payment.amount)}</span></p>
                                                         <p>Reference: <span className="font-semibold text-slate-900 dark:text-slate-100">{payment.reference}</span></p>
                                                         <p>Status: <span className="font-semibold text-emerald-700 dark:text-emerald-400">Verified</span></p>
                                                         <p>Archive: <span className="font-semibold text-slate-900 dark:text-slate-100">Visible</span></p>
@@ -1625,7 +1614,7 @@ export default function AdminDashboard({
                                                     <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">{payment.dateLabel}</p>
                                                     <div className="mt-4 grid gap-1 text-sm">
                                                         <p>Customer: <span className="font-semibold text-slate-900 dark:text-slate-100">{payment.customer}</span></p>
-                                                        <p>Amount: <span className="font-semibold text-indigo-600 dark:text-violet-200">{formatCurrency(payment.amount)}</span></p>
+                                                        <p>Amount: <span className="font-semibold text-slate-900 dark:text-white">{formatCurrency(payment.amount)}</span></p>
                                                         <p>Reference: <span className="font-semibold text-slate-900 dark:text-slate-100">{payment.reference}</span></p>
                                                         <p>Status: <span className="font-semibold text-emerald-700 dark:text-emerald-400">Verified</span></p>
                                                         <p>Archive: <span className="font-semibold text-slate-900 dark:text-slate-100">Archived</span></p>
@@ -1674,18 +1663,18 @@ export default function AdminDashboard({
                                     </div>
 
                                     <div className="grid gap-4 md:grid-cols-3">
-                                        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                                            <p className="text-sm text-slate-500">Open Tickets</p>
-                                            <p className="mt-2 text-2xl font-semibold text-amber-600">
+                                        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:bg-slate-900 dark:border-slate-700">
+                                            <p className="text-sm text-slate-500 dark:text-slate-400">Open Tickets</p>
+                                            <p className="mt-2 text-2xl font-semibold text-slate-900 dark:text-white">
                                                 {
                                                     tickets.filter((ticket) => ticket.status === 'open')
                                                         .length
                                                 }
                                             </p>
                                         </div>
-                                        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                                            <p className="text-sm text-slate-500">In Progress</p>
-                                            <p className="mt-2 text-2xl font-semibold text-indigo-600">
+                                        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:bg-slate-900 dark:border-slate-700">
+                                            <p className="text-sm text-slate-500 dark:text-slate-400">In Progress</p>
+                                            <p className="mt-2 text-2xl font-semibold text-yellow-400">
                                                 {
                                                     tickets.filter(
                                                         (ticket) =>
@@ -1694,9 +1683,9 @@ export default function AdminDashboard({
                                                 }
                                             </p>
                                         </div>
-                                        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                                            <p className="text-sm text-slate-500">Resolved</p>
-                                            <p className="mt-2 text-2xl font-semibold text-emerald-600">
+                                        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:bg-slate-900 dark:border-slate-700">
+                                            <p className="text-sm text-slate-500 dark:text-slate-400">Resolved</p>
+                                            <p className="mt-2 text-2xl font-semibold text-green-400">
                                                 {
                                                     tickets.filter(
                                                         (ticket) => ticket.status === 'resolved',
@@ -1754,11 +1743,6 @@ export default function AdminDashboard({
                                                         {ticket.id}
                                                     </h3>
                                                     <span
-                                                        className={`rounded-full px-3 py-1 text-xs font-semibold ${priorityStyles[ticket.priority]}`}
-                                                    >
-                                                        {ticket.priority}
-                                                    </span>
-                                                    <span
                                                         className={`rounded-full px-3 py-1 text-xs font-semibold ${ticketStyles[ticket.status]}`}
                                                     >
                                                         {ticket.status}
@@ -1778,7 +1762,7 @@ export default function AdminDashboard({
                                                     <button
                                                         type="button"
                                                         onClick={() => handleResolveTicket(ticket.ticketId)}
-                                                        className="rounded-xl bg-emerald-500 px-3 py-2 text-xs font-semibold text-white"
+                                                        className="rounded-xl bg-emerald-500 px-3 py-2 text-xs font-semibold text-white dark:bg-emerald-700 dark:hover:bg-emerald-600"
                                                     >
                                                         Mark as Resolved
                                                     </button>
@@ -1800,15 +1784,10 @@ export default function AdminDashboard({
                                                     key={ticket.id}
                                                     className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800"
                                                 >
-                                                    <div className="flex items-center justify-between">
+                                                    <div>
                                                         <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">
                                                             {ticket.id}
                                                         </h3>
-                                                        <span
-                                                            className={`rounded-full px-3 py-1 text-xs font-semibold ${priorityStyles[ticket.priority]}`}
-                                                        >
-                                                            {ticket.priority}
-                                                        </span>
                                                     </div>
                                                     <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">{ticket.date}</p>
                                                     <div className="mt-4 grid gap-1 text-sm">

@@ -54,6 +54,12 @@ class ProfileUpdateRequest extends FormRequest
         return array_merge($rules, [
             'name' => ['required', 'string', 'max:100'],
             'phone' => ['nullable', 'string', 'max:20'],
+            'registration_passkey' => [
+                'required',
+                'string',
+                'size:24',
+                Rule::unique('super_admins', 'registration_passkey')->ignore($user->superAdmin?->admin_id, 'admin_id'),
+            ],
         ]);
     }
 }

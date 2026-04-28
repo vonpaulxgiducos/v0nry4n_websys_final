@@ -53,7 +53,7 @@ class SupportController extends Controller
             'order_id' => 'nullable|exists:orders,id',
             'subject' => 'required|string|max:200',
             'message' => 'required|string',
-            'priority' => 'nullable|in:low,medium,high',
+            'priority' => 'nullable|in:low,high',
         ]);
 
         $customer = Auth::user()->customer;

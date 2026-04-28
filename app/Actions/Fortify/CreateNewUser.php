@@ -10,6 +10,7 @@ use App\Models\SuperAdmin;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Laravel\Fortify\Contracts\CreatesNewUsers;
 
@@ -71,6 +72,16 @@ class CreateNewUser implements CreatesNewUsers
                     'first_name' => ['required', 'string', 'max:50'],
                     'last_name' => ['required', 'string', 'max:50'],
                     'phone' => ['nullable', 'string', 'max:20'],
+                    'registration_passkey' => [
+                        'required',
+                        'string',
+                        'size:24',
+                        function (string $attribute, mixed $value, \Closure $fail): void {
+                            if (! is_string($value) || ! SuperAdmin::query()->where('registration_passkey', $value)->exists()) {
+                                $fail('Invalid admin passkey.');
+                            }
+                        },
+                    ],
                 ]);
                 break;
         }
@@ -130,10 +141,20 @@ class CreateNewUser implements CreatesNewUsers
                     'last_name' => $input['last_name'],
                     'phone' => $input['phone'] ?? null,
                     'email' => $input['email'],
+                    'registration_passkey' => $this->generateUniqueAdminPasskey(),
                 ]);
             }
 
             return $user;
         });
+    }
+
+    private function generateUniqueAdminPasskey(): string
+    {
+        do {
+            $passkey = Str::upper(Str::random(24));
+        } while (SuperAdmin::query()->where('registration_passkey', $passkey)->exists());
+
+        return (string) $passkey;
     }
 }

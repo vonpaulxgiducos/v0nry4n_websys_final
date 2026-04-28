@@ -36,6 +36,7 @@ class ProfileController extends Controller
                 ?? $user->superAdmin?->phone,
             'address' => $user->seller?->address
                 ?? $user->customer?->address,
+            'registration_passkey' => $user->superAdmin?->registration_passkey,
         ];
 
         return Inertia::render('settings/profile', [
@@ -103,6 +104,7 @@ class ProfileController extends Controller
                         'last_name' => $lastName,
                         'phone' => $validated['phone'] ?: null,
                         'email' => $validated['email'],
+                        'registration_passkey' => $validated['registration_passkey'],
                     ],
                 );
             }

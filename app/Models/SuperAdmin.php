@@ -18,6 +18,7 @@ class SuperAdmin extends Model
         'last_name',
         'phone',
         'email',
+        'registration_passkey',
     ];
 
     public function user(): BelongsTo
