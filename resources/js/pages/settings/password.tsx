@@ -13,6 +13,7 @@ import SettingsLayout from '@/layouts/settings/layout';
 import { edit } from '@/routes/user-password';
 import { type BreadcrumbItem } from '@/types';
 
+
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Password settings',

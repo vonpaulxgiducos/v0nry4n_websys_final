@@ -3,8 +3,8 @@
 namespace App\Http\Middleware;
 
 use Closure;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
 
 class UseRoleAuthContext
@@ -110,5 +110,4 @@ class UseRoleAuthContext
 
         return 'customer';
     }
-
 }

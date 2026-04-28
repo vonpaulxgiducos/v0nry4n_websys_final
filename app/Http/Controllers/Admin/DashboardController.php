@@ -35,6 +35,17 @@ class DashboardController extends Controller
         return back()->with('success', 'Product rejected successfully.');
     }
 
+    public function withdrawProduct(Product $product): RedirectResponse
+    {
+        abort_unless(Auth::user()?->user_type === 'super_admin', 403);
+
+        $product->update([
+            'approval_status' => 'pending',
+        ]);
+
+        return back()->with('success', 'Product approval withdrawn successfully.');
+    }
+
     public function verifyPayment(Payment $payment): RedirectResponse
     {
         abort_unless(Auth::user()?->user_type === 'super_admin', 403);

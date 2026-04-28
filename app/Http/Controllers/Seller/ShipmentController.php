@@ -18,7 +18,7 @@ class ShipmentController extends Controller
     public function index(): Response
     {
         $seller = Auth::user()->seller;
-        
+
         $shipments = Shipment::where('seller_id', $seller->seller_id)
             ->with(['order.customer.user'])
             ->latest()
@@ -43,7 +43,7 @@ class ShipmentController extends Controller
         ]);
 
         $seller = Auth::user()->seller;
-        
+
         // Ensure the order belongs to the seller
         $order = Order::findOrFail($validated['order_id']);
         if ($order->seller_id !== $seller->seller_id) {
@@ -89,13 +89,13 @@ class ShipmentController extends Controller
         $shipment->update($validated);
 
         // Update shipped_at timestamp when status changes to in_transit
-        if ($validated['shipping_status'] === 'in_transit' && !$shipment->shipped_at) {
+        if ($validated['shipping_status'] === 'in_transit' && ! $shipment->shipped_at) {
             $shipment->update(['shipped_at' => now()]);
             $shipment->order->update(['order_status' => 'shipped']);
         }
 
         // Update delivered_at timestamp when status changes to delivered
-        if ($validated['shipping_status'] === 'delivered' && !$shipment->delivered_at) {
+        if ($validated['shipping_status'] === 'delivered' && ! $shipment->delivered_at) {
             $shipment->update(['delivered_at' => now()]);
             $shipment->order->update(['order_status' => 'delivered']);
         }

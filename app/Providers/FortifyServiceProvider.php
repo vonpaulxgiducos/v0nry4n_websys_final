@@ -4,6 +4,9 @@ namespace App\Providers;
 
 use App\Actions\Fortify\CreateNewUser;
 use App\Actions\Fortify\ResetUserPassword;
+use App\Models\Customer;
+use App\Models\Seller;
+use App\Models\SuperAdmin;
 use App\Models\User;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
@@ -16,9 +19,6 @@ use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Laravel\Fortify\Features;
 use Laravel\Fortify\Fortify;
-use App\Models\Customer;
-use App\Models\Seller;
-use App\Models\SuperAdmin;
 
 class FortifyServiceProvider extends ServiceProvider
 {

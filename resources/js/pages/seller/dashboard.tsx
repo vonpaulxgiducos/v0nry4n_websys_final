@@ -1,5 +1,6 @@
 import { Head, router, usePage } from '@inertiajs/react';
 import { type ReactNode, useEffect, useMemo, useState } from 'react';
+
 import DeleteUser from '@/components/delete-user';
 import ProfileInformationForm from '@/components/profile-information-form';
 import ThemeSwitch from '@/components/theme-switch';
@@ -384,6 +385,9 @@ export default function SellerDashboard({
     const [pendingPayments, setPendingPayments] = useState<PaymentItem[]>(initialPendingPayments);
     const [verifiedPayments, setVerifiedPayments] = useState<PaymentItem[]>(initialVerifiedPayments);
     const [rejectedPayments, setRejectedPayments] = useState<PaymentItem[]>(initialRejectedPayments);
+    const [sortBy, setSortBy] = useState<'name-asc' | 'name-desc' | 'price-asc' | 'price-desc' | 'none'>('name-asc');
+    const [isDateDescending, setIsDateDescending] = useState(false);
+    const [category, setCategory] = useState('All Categories');
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
     useEffect(() => {
@@ -929,8 +933,88 @@ export default function SellerDashboard({
                                     </button>
                                 </div>
 
+                                <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
+                                    <div className="flex flex-wrap gap-1.5">
+                                        {(['All Categories', 'Guitars', 'Keyboards', 'Drums', 'Accessories', 'Music Sheets', 'Music Books'] as const).map((option) => {
+                                            const isActive = category === option;
+
+                                            return (
+                                                <button
+                                                    key={option}
+                                                    type="button"
+                                                    onClick={() => setCategory(option)}
+                                                    className={`rounded-md border px-3 py-1.5 text-xs font-medium transition ${
+                                                        isActive
+                                                            ? 'border-blue-300 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-300'
+                                                            : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'
+                                                    }`}
+                                                >
+                                                    {option}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+
+                                <div className="flex flex-wrap gap-1.5">
+                                    {([
+                                        { key: 'name-asc', label: 'A-Z' },
+                                        { key: 'name-desc', label: 'Z-A' },
+                                        { key: 'price-asc', label: 'Price: Low to High' },
+                                        { key: 'price-desc', label: 'Price: High to Low' },
+                                    ] as const).map((option) => (
+                                        <button
+                                            key={option.key}
+                                            type="button"
+                                            onClick={() => setSortBy(option.key)}
+                                            className={`rounded-md border px-3 py-1.5 text-xs font-medium transition ${
+                                                sortBy === option.key
+                                                    ? 'border-blue-300 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-300'
+                                                    : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'
+                                            }`}
+                                        >
+                                            {option.label}
+                                        </button>
+                                    ))}
+                                </div>
+
+                                <div className="flex gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsDateDescending(false)}
+                                        className={`rounded-md border px-3 py-1.5 text-xs font-medium transition ${
+                                            !isDateDescending
+                                                ? 'border-blue-300 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-300'
+                                                : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'
+                                        }`}
+                                    >
+                                        Latest
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsDateDescending(true)}
+                                        className={`rounded-md border px-3 py-1.5 text-xs font-medium transition ${
+                                            isDateDescending
+                                                ? 'border-blue-300 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-300'
+                                                : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'
+                                        }`}
+                                    >
+                                        Oldest
+                                    </button>
+                                </div>
+
                                 <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                                    {products.map((product) => (
+                                    {products.filter(p => category === 'All Categories' || p.category === category).map((p, i) => ({ product: p, index: i })).sort((a, b) => {
+                                        const defaultSort = (() => {
+                                            if (sortBy === 'name-asc') return a.product.name.localeCompare(b.product.name);
+                                            if (sortBy === 'name-desc') return b.product.name.localeCompare(a.product.name);
+                                            if (sortBy === 'price-asc') return a.product.price - b.product.price;
+                                            if (sortBy === 'price-desc') return b.product.price - a.product.price;
+                                            return 0;
+                                        })();
+                                        if (defaultSort !== 0) return defaultSort;
+                                        return isDateDescending ? b.index - a.index : a.index - b.index;
+                                    }).map(({ product }) => (
                                         <article
                                             key={product.id}
                                             className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
@@ -1063,7 +1147,36 @@ export default function SellerDashboard({
                                         </article>
                                     )}
 
-                                    {sellerOrders.map((order) => (
+                                    <div className="flex gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsDateDescending(false)}
+                                            className={`rounded-md border px-3 py-1.5 text-xs font-medium transition ${
+                                                !isDateDescending
+                                                    ? 'border-blue-300 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-300'
+                                                    : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'
+                                            }`}
+                                        >
+                                            Latest
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsDateDescending(true)}
+                                            className={`rounded-md border px-3 py-1.5 text-xs font-medium transition ${
+                                                isDateDescending
+                                                    ? 'border-blue-300 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-300'
+                                                    : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'
+                                            }`}
+                                        >
+                                            Oldest
+                                        </button>
+                                    </div>
+
+                                    {sellerOrders.sort((a, b) => {
+                                        const dateA = new Date(a.dateLabel).getTime();
+                                        const dateB = new Date(b.dateLabel).getTime();
+                                        return isDateDescending ? dateB - dateA : dateA - dateB;
+                                    }).map((order) => (
                                         <article
                                             key={order.id}
                                             className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"

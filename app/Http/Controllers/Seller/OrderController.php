@@ -18,7 +18,7 @@ class OrderController extends Controller
     public function index(Request $request): Response
     {
         $seller = Auth::user()->seller;
-        
+
         $orders = Order::where('seller_id', $seller->seller_id)
             ->with(['customer.user', 'orderItems', 'payment', 'shipment'])
             ->when($request->status, function ($query, $status) {

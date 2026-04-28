@@ -14,9 +14,9 @@ use App\Models\SuperAdmin;
 use App\Models\SupportReply;
 use App\Models\SupportTicket;
 use App\Models\User;
-use Illuminate\Support\Facades\Hash;
-// use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+// use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {

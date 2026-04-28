@@ -1,8 +1,5 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
-use Laravel\Fortify\Features;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Customer\CartController as CustomerCartController;
@@ -12,6 +9,9 @@ use App\Http\Controllers\Seller\OrderController as SellerOrderController;
 use App\Http\Controllers\Seller\PaymentController as SellerPaymentController;
 use App\Http\Controllers\Seller\ProductController as SellerProductController;
 use App\Http\Controllers\SupportController;
+use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
+use Laravel\Fortify\Features;
 
 Route::get('/', function () {
     return Inertia::render('welcome', [
@@ -53,6 +53,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('admin/dashboard', [AdminDashboardController::class, 'index'])->name('admin.dashboard');
         Route::post('admin/products/{product}/approve', [AdminDashboardController::class, 'approveProduct'])->name('admin.products.approve');
         Route::post('admin/products/{product}/reject', [AdminDashboardController::class, 'rejectProduct'])->name('admin.products.reject');
+        Route::post('admin/products/{product}/withdraw', [AdminDashboardController::class, 'withdrawProduct'])->name('admin.products.withdraw');
         Route::post('admin/payments/{payment}/verify', [AdminDashboardController::class, 'verifyPayment'])->name('admin.payments.verify');
         Route::post('admin/payments/{payment}/reject', [AdminDashboardController::class, 'rejectPayment'])->name('admin.payments.reject');
         Route::patch('admin/payments/{payment}/archive', [AdminDashboardController::class, 'archivePayment'])->name('admin.payments.archive');

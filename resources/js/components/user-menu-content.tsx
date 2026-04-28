@@ -12,6 +12,7 @@ import { useMobileNavigation } from '@/hooks/use-mobile-navigation';
 import { edit } from '@/routes/profile';
 import { type User } from '@/types';
 
+
 interface UserMenuContentProps {
     user: User;
 }

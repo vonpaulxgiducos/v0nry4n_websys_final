@@ -15,7 +15,7 @@ class LoadUserRelationships
     {
         if (Auth::check()) {
             $user = Auth::user();
-            
+
             // Load relationships by accessing them to trigger lazy loading
             // This ensures the relationships are cached on the user instance
             if ($user) {

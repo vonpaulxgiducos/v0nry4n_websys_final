@@ -26,19 +26,19 @@ class CreateNewUser implements CreatesNewUsers
     {
         // Default to 'customer' if user_type not provided (for tests)
         $input['user_type'] = $input['user_type'] ?? 'customer';
-        
+
         // For tests: generate username from email if not provided
-        if (!isset($input['username'])) {
-            $input['username'] = explode('@', $input['email'])[0] . rand(1000, 9999);
+        if (! isset($input['username'])) {
+            $input['username'] = explode('@', $input['email'])[0].rand(1000, 9999);
         }
-        
+
         // For tests: if 'name' is provided but not first_name/last_name, split it
-        if (isset($input['name']) && !isset($input['first_name']) && $input['user_type'] === 'customer') {
+        if (isset($input['name']) && ! isset($input['first_name']) && $input['user_type'] === 'customer') {
             $nameParts = explode(' ', $input['name'], 2);
             $input['first_name'] = $nameParts[0];
             $input['last_name'] = $nameParts[1] ?? $nameParts[0];
         }
-        
+
         $rules = [
             'username' => ['required', 'string', 'max:50', Rule::unique(User::class, 'username')],
             'email' => $this->emailRules(),
@@ -80,10 +80,10 @@ class CreateNewUser implements CreatesNewUsers
         return DB::transaction(function () use ($input) {
             $displayName = match ($input['user_type']) {
                 'seller' => $input['owner_name'],
-                'customer' => trim(($input['first_name'] ?? '') . ' ' . ($input['last_name'] ?? '')),
-                default => $input['name'] ?? trim(($input['first_name'] ?? '') . ' ' . ($input['last_name'] ?? '')),
+                'customer' => trim(($input['first_name'] ?? '').' '.($input['last_name'] ?? '')),
+                default => $input['name'] ?? trim(($input['first_name'] ?? '').' '.($input['last_name'] ?? '')),
             };
-            
+
             // Fallback to name if displayName is empty
             if (empty(trim($displayName)) && isset($input['name'])) {
                 $displayName = $input['name'];

@@ -1,5 +1,6 @@
 import { Head, router, usePage } from '@inertiajs/react';
 import { type FormEvent, type ReactNode, useEffect, useState } from 'react';
+
 import DeleteUser from '@/components/delete-user';
 import ProfileInformationForm from '@/components/profile-information-form';
 import ThemeSwitch from '@/components/theme-switch';
@@ -470,6 +471,8 @@ export default function Dashboard({
     const [activeSection, setActiveSection] = useState<SectionId>(getInitialSectionFromUrl(page.url));
     const [searchText, setSearchText] = useState('');
     const [category, setCategory] = useState('All Categories');
+    const [sortBy, setSortBy] = useState<'name-asc' | 'name-desc' | 'price-asc' | 'price-desc' | 'none'>('name-asc');
+    const [isDateDescending, setIsDateDescending] = useState(false);
     const [cartItems, setCartItems] = useState<CartItem[]>(initialCartItems);
     const [selectedCartItemIds, setSelectedCartItemIds] = useState<string[]>([]);
     const [siteNotification, setSiteNotification] = useState<SiteNotification | null>(null);
@@ -685,6 +688,12 @@ export default function Dashboard({
             product.seller.toLowerCase().includes(search);
 
         return categoryMatches && searchMatches;
+    }).sort((a, b) => {
+        if (sortBy === 'name-asc') return a.name.localeCompare(b.name);
+        if (sortBy === 'name-desc') return b.name.localeCompare(a.name);
+        if (sortBy === 'price-asc') return a.price - b.price;
+        if (sortBy === 'price-desc') return b.price - a.price;
+        return 0;
     });
 
     const cartTotal = cartItems.reduce(
@@ -1089,8 +1098,59 @@ export default function Dashboard({
                                     </div>
                                 </div>
 
+                                <div className="flex flex-wrap gap-1.5">
+                                    {([
+                                        { key: 'name-asc', label: 'A-Z' },
+                                        { key: 'name-desc', label: 'Z-A' },
+                                        { key: 'price-asc', label: 'Price: Low to High' },
+                                        { key: 'price-desc', label: 'Price: High to Low' },
+                                    ] as const).map((option) => (
+                                        <button
+                                            key={option.key}
+                                            type="button"
+                                            onClick={() => setSortBy(option.key)}
+                                            className={`rounded-md border px-3 py-1.5 text-xs font-medium transition ${
+                                                sortBy === option.key
+                                                    ? 'border-blue-300 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-300'
+                                                    : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'
+                                            }`}
+                                        >
+                                            {option.label}
+                                        </button>
+                                    ))}
+                                </div>
+
+                                <div className="flex gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsDateDescending(false)}
+                                        className={`rounded-md border px-3 py-1.5 text-xs font-medium transition ${
+                                            !isDateDescending
+                                                ? 'border-blue-300 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-300'
+                                                : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'
+                                        }`}
+                                    >
+                                        Latest
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsDateDescending(true)}
+                                        className={`rounded-md border px-3 py-1.5 text-xs font-medium transition ${
+                                            isDateDescending
+                                                ? 'border-blue-300 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-300'
+                                                : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'
+                                        }`}
+                                    >
+                                        Oldest
+                                    </button>
+                                </div>
+
                                 <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-                                    {filteredProducts.map((product) => (
+                                    {filteredProducts.sort((a, b) => {
+                                        const aIndex = filteredProducts.indexOf(a);
+                                        const bIndex = filteredProducts.indexOf(b);
+                                        return isDateDescending ? bIndex - aIndex : aIndex - bIndex;
+                                    }).map((product) => (
                                         <article key={product.id} className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition hover:shadow-md dark:border-slate-800 dark:bg-slate-900">
                                             <div className="relative overflow-hidden bg-slate-100 dark:bg-slate-800">
                                                 <img src={product.image} alt={product.name} className="h-48 w-full object-cover transition hover:scale-105" />

@@ -1,10 +1,12 @@
 import { Head, usePage } from '@inertiajs/react';
+
 import DeleteUser from '@/components/delete-user';
 import ProfileInformationForm from '@/components/profile-information-form';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 import { edit } from '@/routes/profile';
 import { type BreadcrumbItem, type SharedData } from '@/types';
+
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
