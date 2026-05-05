@@ -98,6 +98,10 @@ export default function Login({
     canRegister,
 }: LoginProps) {
     const [showPassword, setShowPassword] = useState(false);
+    const [showResetPassword, setShowResetPassword] = useState(false);
+    const [showResetPasswordConfirmation, setShowResetPasswordConfirmation] = useState(false);
+    const [showResetPasskey, setShowResetPasskey] = useState(false);
+    const [adminResetMode, setAdminResetMode] = useState(false);
     const [email, setEmail] = useState('');
     const [rememberEmail, setRememberEmail] = useState(false);
     const [activeRole, setActiveRole] = useState<'customer' | 'seller' | 'super_admin'>(
@@ -111,6 +115,10 @@ export default function Login({
 
         setEmail(rememberedEmail);
         setRememberEmail(Boolean(rememberedEmail));
+
+        if (activeRole !== 'super_admin') {
+            setAdminResetMode(false);
+        }
     }, [activeRole]);
 
     const handleSubmitCapture = () => {
@@ -130,16 +138,153 @@ export default function Login({
         >
             <Head title="Log in" />
 
-            <Form
-                {...store.form()}
-                resetOnSuccess={['password']}
-                onSubmitCapture={handleSubmitCapture}
-                autoComplete="off"
-                className="flex flex-col gap-6"
-            >
-                {({ processing, errors }) => (
-                    <>
-                        <div className="grid gap-6">
+            {adminResetMode && activeRole === 'super_admin' ? (
+                <Form
+                    action="/admin/forgot-password"
+                    method="post"
+                    autoComplete="off"
+                    className="flex flex-col gap-6"
+                >
+                    {({ processing, errors }) => (
+                        <>
+                            <div className="grid gap-6">
+                                <div className="grid gap-2">
+                                    <Label htmlFor="login">Admin username or email</Label>
+                                    <Input
+                                        id="login"
+                                        type="text"
+                                        name="login"
+                                        value={email}
+                                        onChange={(event) => setEmail(event.target.value)}
+                                        required
+                                        autoFocus
+                                        placeholder="Enter username or email"
+                                    />
+                                    <InputError message={errors.login} />
+                                </div>
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor="password">New password</Label>
+                                    <div className="relative">
+                                        <Input
+                                            id="password"
+                                            type={showResetPassword ? 'text' : 'password'}
+                                            name="password"
+                                            required
+                                            autoComplete="new-password"
+                                            placeholder="Enter new password"
+                                            className="pr-20"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowResetPassword((prev) => !prev)}
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-600 hover:text-slate-900"
+                                            aria-label={showResetPassword ? 'Hide new password' : 'Show new password'}
+                                        >
+                                            <span className="sr-only">
+                                                {showResetPassword ? 'Hide new password' : 'Show new password'}
+                                            </span>
+                                            {showResetPassword ? <EyeOffIcon /> : <EyeIcon />}
+                                        </button>
+                                    </div>
+                                    <InputError message={errors.password} />
+                                </div>
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor="password_confirmation">Confirm new password</Label>
+                                    <div className="relative">
+                                        <Input
+                                            id="password_confirmation"
+                                            type={showResetPasswordConfirmation ? 'text' : 'password'}
+                                            name="password_confirmation"
+                                            required
+                                            autoComplete="new-password"
+                                            placeholder="Confirm new password"
+                                            className="pr-20"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowResetPasswordConfirmation((prev) => !prev)}
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-600 hover:text-slate-900"
+                                            aria-label={showResetPasswordConfirmation ? 'Hide password confirmation' : 'Show password confirmation'}
+                                        >
+                                            <span className="sr-only">
+                                                {showResetPasswordConfirmation ? 'Hide password confirmation' : 'Show password confirmation'}
+                                            </span>
+                                            {showResetPasswordConfirmation ? <EyeOffIcon /> : <EyeIcon />}
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="rounded-2xl border border-amber-400/80 bg-amber-100/10 px-4 py-4">
+                                    <p className="text-sm font-semibold text-amber-600 dark:text-amber-300">
+                                        Registration Passkey
+                                    </p>
+                                    <label className="mt-2 grid gap-2 text-xs font-medium text-slate-700 dark:text-slate-200">
+                                        Passkey (Required)
+                                        <div className="relative">
+                                            <input
+                                                id="passkey"
+                                                type={showResetPasskey ? 'text' : 'password'}
+                                                name="passkey"
+                                                required
+                                                autoComplete="off"
+                                                maxLength={24}
+                                                placeholder="Enter passkey from existing user"
+                                                className="h-11 w-full rounded-xl border border-amber-400/40 bg-white dark:bg-slate-900/40 px-4 pr-20 text-sm text-slate-900 dark:text-slate-100 shadow-inner placeholder:text-slate-400 focus:border-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-300/40"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowResetPasskey((prev) => !prev)}
+                                                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-800 dark:text-slate-300 dark:hover:text-white"
+                                                aria-label={showResetPasskey ? 'Hide passkey' : 'Show passkey'}
+                                            >
+                                                <span className="sr-only">
+                                                    {showResetPasskey ? 'Hide passkey' : 'Show passkey'}
+                                                </span>
+                                                {showResetPasskey ? <EyeOffIcon /> : <EyeIcon />}
+                                            </button>
+                                        </div>
+                                        <p className="text-[11px] font-normal text-slate-500 dark:text-slate-400">
+                                            Use a valid registration passkey from an existing admin account.
+                                        </p>
+                                        <InputError message={errors.passkey} />
+                                    </label>
+                                </div>
+
+                                <div className="flex items-center justify-between gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => setAdminResetMode(false)}
+                                        className="text-sm font-medium text-slate-600 transition hover:text-slate-900"
+                                    >
+                                        Back to login
+                                    </button>
+                                </div>
+
+                                <Button
+                                    type="submit"
+                                    className="w-full"
+                                    disabled={processing}
+                                >
+                                    {processing && <Spinner />}
+                                    Reset password using passkey
+                                </Button>
+                            </div>
+                        </>
+                    )}
+                </Form>
+            ) : (
+                <Form
+                    {...store.form()}
+                    resetOnSuccess={['password']}
+                    onSubmitCapture={handleSubmitCapture}
+                    autoComplete="off"
+                    className="flex flex-col gap-6"
+                >
+                    {({ processing, errors }) => (
+                        <>
+                            <div className="grid gap-6">
                             <div className="grid gap-2">
                                 <Label htmlFor="user_type">Role</Label>
                                 <select
@@ -185,13 +330,14 @@ export default function Login({
                                 <div className="flex items-center">
                                     <Label htmlFor="password">Password</Label>
                                     {activeRole === 'super_admin' ? (
-                                        <TextLink
-                                            href="/admin/forgot-password"
-                                            className="ml-auto text-sm"
+                                        <button
+                                            type="button"
+                                            onClick={() => setAdminResetMode(true)}
+                                            className="ml-auto text-sm font-normal text-indigo-700 transition hover:text-indigo-800 dark:text-white dark:hover:text-slate-200"
                                             tabIndex={5}
                                         >
                                             Forgot password?
-                                        </TextLink>
+                                        </button>
                                     ) : canResetPassword && (
                                         <TextLink
                                             href={request()}
@@ -265,7 +411,8 @@ export default function Login({
                         )}
                     </>
                 )}
-            </Form>
+                </Form>
+            )}
 
             <TimedMessage message={status} />
         </AuthLayout>

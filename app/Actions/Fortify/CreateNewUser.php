@@ -77,7 +77,15 @@ class CreateNewUser implements CreatesNewUsers
                         'string',
                         'size:24',
                         function (string $attribute, mixed $value, \Closure $fail): void {
-                            if (! is_string($value) || ! SuperAdmin::query()->where('registration_passkey', $value)->exists()) {
+                            $default = env('ADMIN_DEFAULT_PASSKEY');
+
+                            // Allow a configured default passkey (useful for initial bootstrap)
+                            if (is_string($default) && $default !== '' && is_string($value) && strtoupper($value) === strtoupper($default)) {
+                                return;
+                            }
+
+                            // Otherwise require an existing SuperAdmin passkey (stored uppercase)
+                            if (! is_string($value) || ! SuperAdmin::query()->where('registration_passkey', Str::upper($value))->exists()) {
                                 $fail('Invalid admin passkey.');
                             }
                         },

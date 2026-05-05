@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\SuperAdmin;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -38,7 +39,23 @@ class AdminPasskeyResetController extends Controller
             ->with('superAdmin')
             ->first();
 
-        if (! $user || ! $user->superAdmin || $user->superAdmin->registration_passkey !== $validated['passkey']) {
+        if (! $user || ! $user->superAdmin) {
+            throw ValidationException::withMessages([
+                'passkey' => 'Invalid admin account or passkey.',
+            ]);
+        }
+
+        $defaultPasskey = env('ADMIN_DEFAULT_PASSKEY');
+
+        $hasMatchingExistingAdminPasskey = SuperAdmin::query()
+            ->where('registration_passkey', strtoupper($validated['passkey']))
+            ->exists();
+
+        $usesDefaultPasskey = is_string($defaultPasskey)
+            && $defaultPasskey !== ''
+            && strtoupper($validated['passkey']) === strtoupper($defaultPasskey);
+
+        if (! $hasMatchingExistingAdminPasskey && ! $usesDefaultPasskey) {
             throw ValidationException::withMessages([
                 'passkey' => 'Invalid admin account or passkey.',
             ]);

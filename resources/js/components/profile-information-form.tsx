@@ -247,10 +247,10 @@ export default function ProfileInformationForm({
                                 </div>
 
                                 <div className="rounded-2xl border border-amber-400/80 bg-amber-100/10 px-4 py-4">
-                                    <p className="text-sm font-semibold text-amber-300">
+                                    <p className="text-sm font-semibold text-amber-600 dark:text-amber-300">
                                         Registration Passkey
                                     </p>
-                                    <label className="mt-3 grid gap-2 text-xs font-medium text-slate-200">
+                                    <label className="mt-3 grid gap-2 text-xs font-medium text-slate-700 dark:text-slate-200">
                                         Passkey (Required)
                                         <div className="relative">
                                             <Input
@@ -264,7 +264,7 @@ export default function ProfileInformationForm({
                                                     setRegistrationPasskey(event.target.value.toUpperCase())
                                                 }
                                                 placeholder="Enter passkey from existing user"
-                                                className="h-11 border-amber-400/40 bg-slate-900/40 pr-32 text-sm text-slate-100 placeholder:text-slate-400 focus-visible:border-amber-300 focus-visible:ring-amber-300/40"
+                                                className="h-11 border-amber-400/40 bg-white dark:bg-slate-900/40 pr-32 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-400 focus-visible:border-amber-300 focus-visible:ring-amber-300/40"
                                             />
                                             <div className="absolute right-3 top-1/2 flex -translate-y-1/2 items-center gap-2">
                                                 <button

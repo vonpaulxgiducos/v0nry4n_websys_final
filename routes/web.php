@@ -21,13 +21,14 @@ Route::get('/', function () {
     ]);
 })->name('home');
 
-Route::middleware('guest')->group(function () {
-    Route::get('admin/forgot-password', [AdminPasskeyResetController::class, 'create'])
-        ->name('admin.passkey-password.request');
+Route::get('admin/forgot-password', [AdminPasskeyResetController::class, 'create'])
+    ->name('admin.passkey-password.request');
 
-    Route::post('admin/forgot-password', [AdminPasskeyResetController::class, 'store'])
-        ->middleware('throttle:10,1')
-        ->name('admin.passkey-password.store');
+Route::post('admin/forgot-password', [AdminPasskeyResetController::class, 'store'])
+    ->middleware('throttle:10,1')
+    ->name('admin.passkey-password.store');
+
+Route::middleware('guest')->group(function () {
 });
 
 Route::middleware(['auth', 'verified'])->group(function () {

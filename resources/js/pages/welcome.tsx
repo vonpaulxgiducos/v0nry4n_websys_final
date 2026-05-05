@@ -159,6 +159,10 @@ export default function Welcome() {
     const [showRegisterPasswordConfirmation, setShowRegisterPasswordConfirmation] =
         useState(false);
     const [showRegisterPasskey, setShowRegisterPasskey] = useState(false);
+    const [showResetPassword, setShowResetPassword] = useState(false);
+    const [showResetPasswordConfirmation, setShowResetPasswordConfirmation] = useState(false);
+    const [showResetPasskey, setShowResetPasskey] = useState(false);
+    const [adminResetMode, setAdminResetMode] = useState(false);
 
     const activeRoleInfo = useMemo(
         () => roles.find((role) => role.id === activeRole) ?? roles[0],
@@ -170,6 +174,10 @@ export default function Welcome() {
 
         setLoginEmail(rememberedEmail);
         setRememberEmail(Boolean(rememberedEmail));
+
+        if (activeRole !== 'super_admin') {
+            setAdminResetMode(false);
+        }
     }, [activeRole]);
 
     const handleLoginSubmitCapture = () => {
@@ -289,6 +297,184 @@ export default function Welcome() {
                                 </div>
 
                                 {authMode === 'login' ? (
+                                    adminResetMode && activeRole === 'super_admin' ? (
+                                    <Form
+                                        action="/admin/forgot-password"
+                                        method="post"
+                                        autoComplete="off"
+                                        className="grid gap-4"
+                                    >
+                                        {({ processing, errors }) => (
+                                            <div className="grid gap-4">
+                                                <label className="grid gap-2 text-sm font-medium text-slate-700">
+                                                    Admin username or email
+                                                    <input
+                                                        type="text"
+                                                        name="login"
+                                                        value={loginEmail}
+                                                        onChange={(event) =>
+                                                            setLoginEmail(
+                                                                event.target.value,
+                                                            )
+                                                        }
+                                                        required
+                                                        autoComplete="off"
+                                                        placeholder="Enter username or email"
+                                                        className="h-11 rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm text-slate-900 shadow-inner focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                                                    />
+                                                    <InputError message={errors.login} />
+                                                </label>
+
+                                                <label className="grid gap-2 text-sm font-medium text-slate-700">
+                                                    New password
+                                                    <div className="relative">
+                                                        <input
+                                                            type={showResetPassword ? 'text' : 'password'}
+                                                            name="password"
+                                                            required
+                                                            autoComplete="new-password"
+                                                            placeholder="Enter new password"
+                                                            className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 pr-20 text-sm text-slate-900 shadow-inner focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            onClick={() =>
+                                                                setShowResetPassword(
+                                                                    (prev) => !prev,
+                                                                )
+                                                            }
+                                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-600 hover:text-slate-900"
+                                                            aria-label={
+                                                                showResetPassword
+                                                                    ? 'Hide new password'
+                                                                    : 'Show new password'
+                                                            }
+                                                        >
+                                                            <span className="sr-only">
+                                                                {showResetPassword
+                                                                    ? 'Hide new password'
+                                                                    : 'Show new password'}
+                                                            </span>
+                                                            {showResetPassword ? (
+                                                                <EyeOffIcon />
+                                                            ) : (
+                                                                <EyeIcon />
+                                                            )}
+                                                        </button>
+                                                    </div>
+                                                    <InputError message={errors.password} />
+                                                </label>
+
+                                                <label className="grid gap-2 text-sm font-medium text-slate-700">
+                                                    Confirm new password
+                                                    <div className="relative">
+                                                        <input
+                                                            type={showResetPasswordConfirmation ? 'text' : 'password'}
+                                                            name="password_confirmation"
+                                                            required
+                                                            autoComplete="new-password"
+                                                            placeholder="Confirm new password"
+                                                            className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 pr-20 text-sm text-slate-900 shadow-inner focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            onClick={() =>
+                                                                setShowResetPasswordConfirmation(
+                                                                    (prev) => !prev,
+                                                                )
+                                                            }
+                                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-600 hover:text-slate-900"
+                                                            aria-label={
+                                                                showResetPasswordConfirmation
+                                                                    ? 'Hide password confirmation'
+                                                                    : 'Show password confirmation'
+                                                            }
+                                                        >
+                                                            <span className="sr-only">
+                                                                {showResetPasswordConfirmation
+                                                                    ? 'Hide password confirmation'
+                                                                    : 'Show password confirmation'}
+                                                            </span>
+                                                            {showResetPasswordConfirmation ? (
+                                                                <EyeOffIcon />
+                                                            ) : (
+                                                                <EyeIcon />
+                                                            )}
+                                                        </button>
+                                                    </div>
+                                                </label>
+
+                                                <div className="rounded-2xl border border-amber-400/80 bg-amber-100/10 px-4 py-4">
+                                                    <p className="text-sm font-semibold text-amber-600 dark:text-amber-300">
+                                                        Registration Passkey
+                                                    </p>
+                                                    <label className="mt-2 grid gap-2 text-xs font-medium text-slate-700 dark:text-slate-200">
+                                                        Passkey (Required)
+                                                        <div className="relative">
+                                                            <input
+                                                                type={showResetPasskey ? 'text' : 'password'}
+                                                                name="passkey"
+                                                                required
+                                                                autoComplete="off"
+                                                                maxLength={24}
+                                                                placeholder="Enter passkey from existing user"
+                                                                className="h-11 w-full rounded-xl border border-amber-400/40 bg-white dark:bg-slate-900/40 px-4 pr-20 text-sm text-slate-900 dark:text-slate-100 shadow-inner placeholder:text-slate-400 focus:border-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-300/40"
+                                                            />
+                                                            <button
+                                                                type="button"
+                                                                onClick={() =>
+                                                                    setShowResetPasskey(
+                                                                        (prev) =>
+                                                                            !prev,
+                                                                    )
+                                                                }
+                                                                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-800 dark:text-slate-300 dark:hover:text-white"
+                                                                aria-label={
+                                                                    showResetPasskey
+                                                                        ? 'Hide passkey'
+                                                                        : 'Show passkey'
+                                                                }
+                                                            >
+                                                                <span className="sr-only">
+                                                                    {showResetPasskey
+                                                                        ? 'Hide passkey'
+                                                                        : 'Show passkey'}
+                                                                </span>
+                                                                {showResetPasskey ? (
+                                                                    <EyeOffIcon />
+                                                                ) : (
+                                                                    <EyeIcon />
+                                                                )}
+                                                            </button>
+                                                        </div>
+                                                        <p className="text-[11px] font-normal text-slate-500 dark:text-slate-400">
+                                                            Use a valid registration passkey from an existing admin account.
+                                                        </p>
+                                                        <InputError message={errors.passkey} />
+                                                    </label>
+                                                </div>
+
+                                                <div className="flex items-center justify-between gap-3">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setAdminResetMode(false)}
+                                                        className="text-sm font-medium text-slate-600 transition hover:text-slate-900 dark:text-slate-200 dark:hover:text-white"
+                                                    >
+                                                        Back to login
+                                                    </button>
+                                                </div>
+
+                                                <button
+                                                    type="submit"
+                                                    disabled={processing}
+                                                    className="mt-2 h-11 rounded-xl bg-slate-950 text-sm font-semibold text-white shadow-[0_18px_30px_-18px_rgba(15,23,42,0.9)] transition hover:-translate-y-0.5 hover:bg-slate-900"
+                                                >
+                                                    Reset password using passkey
+                                                </button>
+                                            </div>
+                                        )}
+                                    </Form>
+                                    ) : (
                                     <Form
                                         {...loginStore.form()}
                                         resetOnSuccess={['password']}
@@ -378,22 +564,34 @@ export default function Welcome() {
                                                         </button>
                                                     </div>
                                                 </label>
-                                                <label className="inline-flex items-center gap-2 text-sm text-slate-700">
-                                                    <input
-                                                        type="checkbox"
-                                                        name="remember"
-                                                        value="1"
-                                                        checked={rememberEmail}
-                                                        onChange={(event) =>
-                                                            setRememberEmail(
-                                                                event.target
-                                                                    .checked,
-                                                            )
-                                                        }
-                                                        className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
-                                                    />
-                                                    Remember me
-                                                </label>
+                                                <div className="flex items-center justify-between gap-3">
+                                                    <label className="inline-flex items-center gap-2 text-sm text-slate-700">
+                                                        <input
+                                                            type="checkbox"
+                                                            name="remember"
+                                                            value="1"
+                                                            checked={rememberEmail}
+                                                            onChange={(event) =>
+                                                                setRememberEmail(
+                                                                    event
+                                                                        .target
+                                                                        .checked,
+                                                                )
+                                                            }
+                                                            className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                                                        />
+                                                        Remember me
+                                                    </label>
+                                                    {activeRole === 'super_admin' && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setAdminResetMode(true)}
+                                                            className="text-xs font-normal text-indigo-700 transition hover:text-indigo-800 dark:text-white dark:hover:text-slate-200"
+                                                        >
+                                                            Forgot password?
+                                                        </button>
+                                                    )}
+                                                </div>
                                                 <button
                                                     type="submit"
                                                     disabled={processing}
@@ -404,6 +602,7 @@ export default function Welcome() {
                                             </div>
                                         )}
                                     </Form>
+                                    )
                                 ) : (
                                     <Form
                                         {...registerStore.form()}
@@ -707,21 +906,21 @@ export default function Welcome() {
 
                                                 {activeRole === 'super_admin' && (
                                                     <div className="rounded-2xl border border-amber-400/80 bg-amber-100/10 px-4 py-4">
-                                                        <p className="text-sm font-semibold text-amber-300">
-                                                            Registration Passkey
-                                                        </p>
-                                                        <label className="mt-2 grid gap-2 text-xs font-medium text-slate-200">
+                                                        <p className="text-sm font-semibold text-amber-600 dark:text-amber-300">
+                                                                Registration Passkey
+                                                            </p>
+                                                            <label className="mt-2 grid gap-2 text-xs font-medium text-slate-700 dark:text-slate-200">
                                                             Passkey (Required)
                                                             <div className="relative">
-                                                                <input
-                                                                    type={showRegisterPasskey ? 'text' : 'password'}
-                                                                    name="registration_passkey"
-                                                                    required
-                                                                    autoComplete="off"
-                                                                    maxLength={24}
-                                                                    placeholder="Enter passkey from existing user"
-                                                                    className="h-11 w-full rounded-xl border border-amber-400/40 bg-slate-900/40 px-4 pr-20 text-sm text-slate-100 shadow-inner placeholder:text-slate-400 focus:border-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-300/40"
-                                                                />
+                                                                    <input
+                                                                        type={showRegisterPasskey ? 'text' : 'password'}
+                                                                        name="registration_passkey"
+                                                                        required
+                                                                        autoComplete="off"
+                                                                        maxLength={24}
+                                                                        placeholder="Enter passkey from existing user"
+                                                                        className="h-11 w-full rounded-xl border border-amber-400/40 bg-white dark:bg-slate-900/40 px-4 pr-20 text-sm text-slate-900 dark:text-slate-100 shadow-inner placeholder:text-slate-400 focus:border-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-300/40"
+                                                                    />
                                                                 <button
                                                                     type="button"
                                                                     onClick={() => setShowRegisterPasskey((prev) => !prev)}

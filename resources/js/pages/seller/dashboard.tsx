@@ -1147,31 +1147,6 @@ export default function SellerDashboard({
                                         </article>
                                     )}
 
-                                    <div className="flex gap-2">
-                                        <button
-                                            type="button"
-                                            onClick={() => setIsDateDescending(false)}
-                                            className={`rounded-md border px-3 py-1.5 text-xs font-medium transition ${
-                                                !isDateDescending
-                                                    ? 'border-blue-300 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-300'
-                                                    : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'
-                                            }`}
-                                        >
-                                            Latest
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => setIsDateDescending(true)}
-                                            className={`rounded-md border px-3 py-1.5 text-xs font-medium transition ${
-                                                isDateDescending
-                                                    ? 'border-blue-300 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-300'
-                                                    : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'
-                                            }`}
-                                        >
-                                            Oldest
-                                        </button>
-                                    </div>
-
                                     {sellerOrders.sort((a, b) => {
                                         const dateA = new Date(a.dateLabel).getTime();
                                         const dateB = new Date(b.dateLabel).getTime();
@@ -1564,13 +1539,15 @@ export default function SellerDashboard({
                                             </div>
 
                                             <div className="mt-4 flex justify-end gap-2 border-t border-slate-200 pt-4">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleUnarchiveOrder(order)}
-                                                    className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 dark:bg-slate-800 dark:border-slate-600 dark:text-slate-100 dark:hover:bg-slate-700"
-                                                >
-                                                    Unarchive
-                                                </button>
+                                                {order.status !== 'cancelled' && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleUnarchiveOrder(order)}
+                                                        className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 dark:bg-slate-800 dark:border-slate-600 dark:text-slate-100 dark:hover:bg-slate-700"
+                                                    >
+                                                        Unarchive
+                                                    </button>
+                                                )}
                                                 <button
                                                     type="button"
                                                     onClick={() => handleDeleteOrder(order)}
@@ -1701,13 +1678,15 @@ export default function SellerDashboard({
                                                 </div>
 
                                                 <div className="mt-4 flex flex-wrap justify-end gap-2 border-t border-slate-200 pt-4">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleUnarchiveOrder(order)}
-                                                        className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 dark:bg-slate-800 dark:border-slate-600 dark:text-slate-100 dark:hover:bg-slate-700"
-                                                    >
-                                                        Unarchive
-                                                    </button>
+                                                    {order.status !== 'cancelled' && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleUnarchiveOrder(order)}
+                                                            className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 dark:bg-slate-800 dark:border-slate-600 dark:text-slate-100 dark:hover:bg-slate-700"
+                                                        >
+                                                            Unarchive
+                                                        </button>
+                                                    )}
 
                                                     <button
                                                         type="button"

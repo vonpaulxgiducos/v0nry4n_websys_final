@@ -34,6 +34,7 @@ type PaymentItem = {
     amount: number;
     customer: string;
     customerPhone?: string;
+    shop?: string;
     dateLabel: string;
     reference: string;
     notes: string;
@@ -1118,31 +1119,6 @@ export default function AdminDashboard({
                                         ))}
                                     </div>
 
-                                    <div className="flex gap-2">
-                                        <button
-                                            type="button"
-                                            onClick={() => setIsDateDescending(false)}
-                                            className={`rounded-md border px-3 py-1.5 text-xs font-medium transition ${
-                                                !isDateDescending
-                                                    ? 'border-blue-300 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-300'
-                                                    : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'
-                                            }`}
-                                        >
-                                            Latest
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => setIsDateDescending(true)}
-                                            className={`rounded-md border px-3 py-1.5 text-xs font-medium transition ${
-                                                isDateDescending
-                                                    ? 'border-blue-300 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-300'
-                                                    : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'
-                                            }`}
-                                        >
-                                            Oldest
-                                        </button>
-                                    </div>
-
                                     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                                         {approvedProducts.filter(p => category === 'All Categories' || p.category === category).map((p, i) => ({ product: p, index: i })).sort((a, b) => {
                                             const defaultSort = (() => {
@@ -1287,6 +1263,12 @@ export default function AdminDashboard({
                                                     </span>
                                                 </div>
                                                 <div className="flex items-center justify-between">
+                                                    <span className="text-slate-500">Shop</span>
+                                                    <span className="font-semibold text-slate-900">
+                                                        {pendingPayments[0].shop ?? '—'}
+                                                    </span>
+                                                </div>
+                                                <div className="flex items-center justify-between">
                                                     <span className="text-slate-500">Amount</span>
                                                         <span className="text-xl font-semibold text-slate-900 dark:text-white">
                                                         {formatCurrency(pendingPayments[0].amount)}
@@ -1379,6 +1361,12 @@ export default function AdminDashboard({
                                                         </span>
                                                     </div>
                                                     <div className="flex items-center justify-between">
+                                                        <span className="text-slate-500">Shop</span>
+                                                        <span className="font-semibold text-slate-900">
+                                                            {payment.shop ?? '—'}
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex items-center justify-between">
                                                         <span className="text-slate-500">Amount</span>
                                                         <span className="text-xl font-semibold text-slate-900 dark:text-white">
                                                             {formatCurrency(payment.amount)}
@@ -1461,6 +1449,12 @@ export default function AdminDashboard({
                                                         <span className="text-slate-500">Customer Phone</span>
                                                         <span className="font-semibold text-slate-900">
                                                             {payment.customerPhone ?? '—'}
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="text-slate-500">Shop</span>
+                                                        <span className="font-semibold text-slate-900">
+                                                            {payment.shop ?? '—'}
                                                         </span>
                                                     </div>
                                                     <div className="flex items-center justify-between">
@@ -1556,6 +1550,7 @@ export default function AdminDashboard({
                                                     <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">{payment.dateLabel}</p>
                                                     <div className="mt-4 grid gap-1 text-sm">
                                                         <p>Customer: <span className="font-semibold text-slate-900 dark:text-slate-100">{payment.customer}</span></p>
+                                                        <p>Shop: <span className="font-semibold text-slate-900 dark:text-slate-100">{payment.shop ?? '—'}</span></p>
                                                         <p>Amount: <span className="font-semibold text-slate-900 dark:text-white">{formatCurrency(payment.amount)}</span></p>
                                                         <p>Reference: <span className="font-semibold text-slate-900 dark:text-slate-100">{payment.reference}</span></p>
                                                         <p>Status: <span className="font-semibold text-emerald-700 dark:text-emerald-400">Verified</span></p>
@@ -1699,31 +1694,6 @@ export default function AdminDashboard({
                                         <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">
                                             Open Tickets
                                         </h2>
-                                    </div>
-
-                                    <div className="flex gap-2">
-                                        <button
-                                            type="button"
-                                            onClick={() => setIsDateDescending(false)}
-                                            className={`rounded-md border px-3 py-1.5 text-xs font-medium transition ${
-                                                !isDateDescending
-                                                    ? 'border-blue-300 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-300'
-                                                    : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'
-                                            }`}
-                                        >
-                                            Latest
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => setIsDateDescending(true)}
-                                            className={`rounded-md border px-3 py-1.5 text-xs font-medium transition ${
-                                                isDateDescending
-                                                    ? 'border-blue-300 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-300'
-                                                    : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'
-                                            }`}
-                                        >
-                                            Oldest
-                                        </button>
                                     </div>
 
                                     {tickets

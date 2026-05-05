@@ -1,7 +1,7 @@
 GIT + GITHUB
 
 CLONING
-git clone (link)
+git clone (link)a
 
 Git cheat sheet sa fb, Git fundamentals (init, clone, branch, merge, pull requests). + GitLab / Bitbucket. Search FULL TUTORIAL ANI
 

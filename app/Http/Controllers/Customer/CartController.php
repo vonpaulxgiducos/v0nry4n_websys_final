@@ -160,7 +160,7 @@ class CartController extends Controller
                 Payment::query()->create([
                     'order_id' => $order->id,
                     'method' => $validated['payment_method'],
-                    'reference' => 'PENDING-'.Str::upper(Str::random(8)),
+                    'reference' => 'PENDING-'.(string) Str::upper(Str::random(8)),
                     'amount' => $totalAmount,
                     'notes' => 'Awaiting payment verification.',
                     'status' => 'pending',
@@ -180,7 +180,7 @@ class CartController extends Controller
 
     private function generateOrderNumber(): string
     {
-        return 'ORD-'.now()->format('Ymd').'-'.Str::upper(Str::random(6));
+        return 'ORD-'.now()->format('Ymd').'-'.(string) Str::upper(Str::random(6));
     }
 
     private function shippingFeeForCourier(string $courier): float

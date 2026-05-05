@@ -157,7 +157,7 @@ class DashboardController extends Controller
             ->get();
 
         $pendingPayments = Payment::query()
-            ->with('order.customer.user')
+            ->with('order.customer.user', 'order.seller.user')
             ->whereNull('admin_hidden_at')
             ->where('status', 'pending')
             ->whereHas('order', function ($query) {
@@ -167,21 +167,21 @@ class DashboardController extends Controller
             ->get();
 
         $verifiedPayments = Payment::query()
-            ->with('order.customer.user')
+            ->with('order.customer.user', 'order.seller.user')
             ->whereNull('admin_hidden_at')
             ->where('status', 'verified')
             ->latest()
             ->get();
 
         $rejectedPayments = Payment::query()
-            ->with('order.customer.user')
+            ->with('order.customer.user', 'order.seller.user')
             ->whereNull('admin_hidden_at')
             ->where('status', 'rejected')
             ->latest()
             ->get();
 
         $revenueHistoryPayments = Payment::query()
-            ->with('order.customer.user')
+            ->with('order.customer.user', 'order.seller.user')
             ->whereNull('admin_hidden_at')
             ->where('status', 'verified')
             ->whereHas('order', function ($query) {
@@ -254,6 +254,7 @@ class DashboardController extends Controller
                     'amount' => (float) $payment->amount,
                     'customer' => $payment->order?->customer?->user?->name ?? 'Customer',
                     'customerPhone' => $payment->order?->customer?->phone ?? $payment->order?->recipient_phone,
+                    'shop' => $payment->order?->seller?->business_name ?? $payment->order?->seller?->user?->name ?? 'Shop',
                     'dateLabel' => optional($payment->created_at)->format('F j, Y \a\t h:i A') ?? '',
                     'reference' => $payment->reference,
                     'notes' => $payment->notes ?? '',
@@ -267,7 +268,7 @@ class DashboardController extends Controller
                     'method' => $payment->method,
                     'amount' => (float) $payment->amount,
                     'customer' => $payment->order?->customer?->user?->name ?? 'Customer',
-                    'customerPhone' => $payment->order?->customer?->phone ?? $payment->order?->recipient_phone,
+                    'customerPhone' => $payment->order?->customer?->phone ?? $payment->order?->recipient_phone,                    'shop' => $payment->order?->seller?->business_name ?? $payment->order?->seller?->user?->name ?? 'Shop',                    'shop' => $payment->order?->seller?->business_name ?? $payment->order?->seller?->user?->name ?? 'Shop',
                     'dateLabel' => optional($payment->created_at)->format('F j, Y \a\t h:i A') ?? '',
                     'reference' => $payment->reference,
                     'notes' => $payment->notes ?? '',
@@ -283,8 +284,7 @@ class DashboardController extends Controller
                     'method' => $payment->method,
                     'amount' => (float) $payment->amount,
                     'customer' => $payment->order?->customer?->user?->name ?? 'Customer',
-                    'customerPhone' => $payment->order?->customer?->phone ?? $payment->order?->recipient_phone,
-                    'dateLabel' => optional($payment->created_at)->format('F j, Y \\a\\t h:i A') ?? '',
+                    'customerPhone' => $payment->order?->customer?->phone ?? $payment->order?->recipient_phone,                    'shop' => $payment->order?->seller?->business_name ?? $payment->order?->seller?->user?->name ?? 'Shop',                    'dateLabel' => optional($payment->created_at)->format('F j, Y \\a\\t h:i A') ?? '',
                     'reference' => $payment->reference,
                     'notes' => $payment->notes ?? '',
                     'status' => 'rejected',
